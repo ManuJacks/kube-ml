@@ -1,5 +1,7 @@
 # Cloud-Native NumPy & PyTorch Platform with MCP & SRE Hardening
 
+[![CI/CD Pipeline](https://github.com/ManuJacks/kube-ml/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/ManuJacks/kube-ml/actions/workflows/ci.yml)
+
 Production-grade, enterprise-tier AI platform reference architecture integrating:
 - **Django** web application framework.
 - **Zero-Copy Tensor Bridge** leveraging `torch.from_numpy()` with C-contiguous `float32` arrays.
@@ -242,9 +244,45 @@ Then visit `https://localhost:8443/` in your browser.
 
 ---
 
-## 4. Repository Structure
+## 4. GitOps Continuous Delivery with Flux CD
+
+The repository is configured for automated GitOps continuous reconciliation via [Flux CD](https://fluxcd.io).
+
+### Structure
+- `clusters/minikube/apps/kustomization.yaml`: Kustomizes the application manifests (`deployment.yaml`, `service.yaml`, `hpa.yaml`).
+- `clusters/minikube/flux-system/gotk-sync.yaml`:
+  - `GitRepository`: Watches `https://github.com/ManuJacks/kube-ml.git` on the `development` branch with a 1-minute poll interval.
+  - `Kustomization`: Reconciles `./clusters/minikube/apps` into the `ml-workloads` namespace with automated pruning.
+
+### Bootstrapping Flux on Minikube
+
+1. **Install Flux into Minikube**:
+   ```bash
+   flux install
+   ```
+
+2. **Apply the GitOps Sync Manifests**:
+   ```bash
+   kubectl apply -k clusters/minikube/flux-system/
+   ```
+
+3. **Verify GitOps Reconciliation**:
+   ```bash
+   flux get sources git
+   flux get kustomizations
+   ```
+
+4. **Trigger Manual Immediate Reconciliation**:
+   ```bash
+   flux reconcile kustomization kube-ml-apps --with-source
+   ```
+
+---
+
+## 5. Repository Structure
 ```text
 .
+├── .github/workflows/ci.yml         # GitHub Actions CI pipeline (Unit tests + Docker)
 ├── blueprint.md                     # Architectural specification
 ├── pyproject.toml                   # Python build metadata & entry points
 ├── Makefile                         # Automation targets
@@ -256,6 +294,23 @@ Then visit `https://localhost:8443/` in your browser.
 │   └── wsgi.py                      # WSGI entry point
 ├── core/                            # Core tensor application
 │   ├── apps.py                      # App configuration
+│   ├── views.py                     # Zero-copy tensor bridge & endpoints
+│   ├── urls.py                      # Core route declarations
+│   ├── tests.py                     # Unit & integration test suite
+│   └── templates/core/              # Interactive HTML GUI
+│       └── tensor_gui.html
+├── mcp/                             # Model Context Protocol server
+│   └── server.py
+└── clusters/minikube/               # GitOps & Kubernetes manifests
+    ├── apps/                        # Application Kustomization (Deployment, Service, HPA)
+    │   ├── kustomization.yaml
+    │   ├── deployment.yaml
+    │   ├── service.yaml
+    │   └── hpa.yaml
+    └── flux-system/                 # Flux GitOps source & sync manifests
+        ├── kustomization.yaml
+        └── gotk-sync.yaml
+```
 │   ├── views.py                     # Zero-copy tensor bridge & endpoints
 │   ├── urls.py                      # Core route declarations
 │   ├── tests.py                     # Unit & integration test suite
