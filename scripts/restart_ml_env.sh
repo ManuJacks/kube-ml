@@ -71,7 +71,7 @@ kubectl wait --namespace istio-system --for=condition=ready pod --selector=app=i
 echo -e "${GREEN}✓ Istio webhook validation online.${NC}\n"
 
 echo -e "${BLUE}[4/5] Synchronizing Declarative Helm Chart Deployments...${NC}"
-helm upgrade --install django-release $(dirname "$0")/django-ml-chart --namespace ml-workloads
+helm upgrade --install django-release $(dirname "$0")/../kube-ml-chart --namespace ml-workloads
 
 echo -e "${YELLOW}FIX: Executing atomic gateway flush to prevent IP/socket collisions...${NC}"
 # Forcefully scale down the gateway deployment to 0 to completely unbind stale socket allocations

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud-Native NumPy & PyTorch Platform</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 40px;
+            background: #f4f6f9;
+            color: #212529;
+        }
+        .container {
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            max-width: 650px;
+            margin: auto;
+        }
+        h2 {
+            color: #0d233a;
+            border-bottom: 2px solid #2b5c8f;
+            padding-bottom: 12px;
+            margin-top: 0;
+        }
+        .input-group {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #2b5c8f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: background 0.2s ease-in-out;
+        }
+        button:hover {
+            background: #1d3e61;
+        }
+        #result {
+            margin-top: 25px;
+            padding: 16px;
+            background: #eef5fa;
+            border-left: 5px solid #2b5c8f;
+            border-radius: 4px;
+            display: none;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>NumPy & PyTorch Zero-Copy Platform</h2>
+        <p>Enter continuous features as a vector (comma-separated float values):</p>
+        <div class="input-group">
+            <input type="text" id="arrayInput" value="10.0, 20.0, 30.0, 40.0" />
+            <button onclick="calculateMatrix()">Execute Tensor Bridge</button>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function calculateMatrix() {
+            const input = document.getElementById('arrayInput').value;
+            const dataArray = input.split(',').map(item => parseFloat(item.trim())).filter(val => !isNaN(val));
+            const resultDiv = document.getElementById('result');
+
+            if (dataArray.length === 0) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.borderLeftColor = '#dc3545';
+                resultDiv.innerHTML = '<span style="color:#dc3545;"><strong>Error:</strong> Please provide valid numbers.</span>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: dataArray })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Request failed');
+                }
+
+                resultDiv.style.display = 'block';
+                resultDiv.style.borderLeftColor = '#2b5c8f';
+                resultDiv.innerHTML = `
+                    <strong>Original Vector:</strong> [${result.original.join(', ')}]<br>
+                    <strong>Tensor Shape:</strong> ${result.shape}<br>
+                    <strong>L2 Norm (Magnitude):</strong> ${result.l2_norm}<br>
+                    <strong>Scaled Output (x2):</strong> [${result.numpy_processed.join(', ')}]<br>
+                    <strong>Memory Bridge:</strong> <span class="badge">${result.zero_copy ? 'Zero-Copy (Shared Buffer)' : 'Copied'}</span><br>
+                    <strong>Worker Threads:</strong> ${result.threads}
+                `;
+            } catch (err) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.borderLeftColor = '#dc3545';
+                resultDiv.innerHTML = `<span style="color:#dc3545;"><strong>Error:</strong> ${err.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cloud-native-numpy-platform"
+version = "0.1.0"
+description = "Cloud-Native NumPy & PyTorch Platform with MCP & SRE Hardening"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Platform Engineering Team" }
+]
+dependencies = [
+    "django>=4.2",
+    "numpy>=1.24.0",
+    "torch>=2.0.0",
+]
+
+[project.scripts]
+numpy-mcp-server = "mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["config*", "core*", "mcp*"]

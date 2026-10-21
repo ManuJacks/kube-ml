@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-ml-platform
+  labels:
+    app: kube-ml-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube-ml-platform
+  template:
+    metadata:
+      labels:
+        app: kube-ml-platform
+    spec:
+      containers:
+      - name: kube-ml-app
+        image: kube-ml-app:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
