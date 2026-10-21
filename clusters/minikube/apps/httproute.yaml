@@ -1,0 +1,16 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kube-ml-route
+  namespace: ml-workloads
+spec:
+  parentRefs:
+  - name: kube-ml-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: kube-ml-service
+      port: 8000
