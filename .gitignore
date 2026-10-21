@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files                                                               
+__pycache__/                                                       
+*.py[cod] 
+*$py.class
+                               
+# Sockets, logs, certs                           
+*.sock     
+Happy
+*.log
+*.crt                                                              
+*.key   
+*.pem    
+                                                                   
+# Virtual environments & packages                                                                     
+.venv/
+venv/        
+dist/                                                              
+build/                         
+*.egg-info/  
+*.deb                                   

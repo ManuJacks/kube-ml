@@ -1,0 +1,18 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: django-gateway
+  namespace: {{ .Release.Namespace }}
+spec:
+  gatewayClassName: istio
+  listeners:
+  - name: https
+    protocol: HTTPS        # Change protocol from HTTP to HTTPS
+    port: 443             # Expose the standard TLS port
+    tls:
+      mode: Terminate     # Decrypt browser traffic right at the edge
+      certificateRefs:
+      - name: django-credential-secret # Inject your certificate secret here
+    allowedRoutes:
+      namespaces:
+        from: Same
