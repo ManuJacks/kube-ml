@@ -206,19 +206,21 @@ The platform leverages **Istio Ambient Mode** and Kubernetes Gateway API for zer
 
 ### Accessing HTTPS in Minikube
 
-Because Minikube operates as a local Docker cluster without a cloud load balancer provider, `LoadBalancer` services will show `EXTERNAL-IP: <pending>` unless routed. Choose any of the following methods to access your HTTPS gateway:
+Because Minikube operates as a local Docker cluster without a cloud load balancer provider, `LoadBalancer` services show `EXTERNAL-IP: <pending>` unless routed. Choose any of the following methods to access the `kube-ml-gateway`:
 
-#### Method 1: Direct via NodePort (Fastest — No Sudo Required)
-The gateway service exposes port 443 via a dynamically assigned NodePort (e.g., `31313`):
+#### Method 1: Direct via Gateway NodePort (Fastest — No Sudo Required)
+The Istio Gateway controller (`kube-ml-gateway-istio`) dynamically allocates a NodePort for port 443 (e.g., `32296`):
 ```bash
-# Obtain Minikube node IP and assigned HTTPS NodePort
+# Retrieve Minikube IP and dynamic HTTPS NodePort for the gateway
 GATEWAY_IP=$(minikube ip)
-NODE_PORT=$(kubectl get svc django-gateway-istio -n ml-workloads -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
+NODE_PORT=$(kubectl get svc kube-ml-gateway-istio -n ml-workloads -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
 
-# Send HTTPS request (use -k for self-signed certificates)
+echo "Access GUI at: https://${GATEWAY_IP}:${NODE_PORT}/"
+
+# Test via curl (use -k for the self-signed certificate)
 curl -k https://${GATEWAY_IP}:${NODE_PORT}/
 ```
-You can also open `https://${GATEWAY_IP}:${NODE_PORT}/` directly in your browser (accept the self-signed certificate prompt).
+Open **`https://${GATEWAY_IP}:${NODE_PORT}/`** in your browser (e.g. `https://192.168.49.2:32296/`) and accept the self-signed TLS prompt. You will see the live interactive **Cloud-Native NumPy & PyTorch Platform**!
 
 #### Method 2: Standard Port 443 via `minikube tunnel`
 To route standard port `443` traffic and allocate an external IP directly:
@@ -226,21 +228,21 @@ To route standard port `443` traffic and allocate an external IP directly:
    ```bash
    sudo minikube tunnel
    ```
-2. Verify that the gateway service receives an `EXTERNAL-IP`:
+2. Verify that `kube-ml-gateway-istio` receives an `EXTERNAL-IP`:
    ```bash
-   kubectl get svc django-gateway-istio -n ml-workloads
+   kubectl get svc kube-ml-gateway-istio -n ml-workloads
    ```
-3. Access directly via the assigned external IP:
+3. Access directly via the assigned external IP on standard HTTPS:
    ```bash
    curl -k https://<EXTERNAL-IP>/
    ```
 
 #### Method 3: Local Port-Forwarding
-Alternatively, forward the HTTPS port to a local high port:
+Alternatively, forward the HTTPS gateway directly to a local port:
 ```bash
-kubectl port-forward svc/django-gateway-istio -n ml-workloads 8443:443
+kubectl port-forward svc/kube-ml-gateway-istio -n ml-workloads 8443:443
 ```
-Then visit `https://localhost:8443/` in your browser.
+Then open `https://localhost:8443/` in your browser.
 
 ---
 
