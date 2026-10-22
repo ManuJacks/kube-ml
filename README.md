@@ -34,7 +34,7 @@ turnkey production service. See [Status](#status) for exactly what is and isn't 
 | --- | --- |
 | **Zero-copy tensor bridge** | `torch.from_numpy()` over C-contiguous `float32` arrays shares memory between NumPy and PyTorch |
 | **Container-aware limits** | `torch.set_num_threads(2)` prevents CPU thrashing in pods; `MAX_ELEMENTS = 1,000,000` and a 25 MB body cap bound each request |
-| **MCP server** | `numpy-mcp-server` exposes 18 read-only examples to AI agents over stdio |
+| **MCP server** | `numpy-mcp-server` exposes 20 read-only examples to AI agents over stdio |
 | **Istio Ambient mesh** | Sidecar-free strict mTLS and HTTPS gateway termination via the Gateway API |
 | **Flux CD GitOps** | Continuous reconciliation with pruning; immutable, auto-promoted image tags |
 | **Zero-trust hardening** | Default-deny NetworkPolicies, least-privilege RBAC, Pod Security Standards *Restricted*, read-only rootfs |

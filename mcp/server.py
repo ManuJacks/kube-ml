@@ -26,6 +26,7 @@ def call_tool(name, arguments):
     if not API_TOKEN or not hmac.compare_digest(supplied_token, API_TOKEN):
         raise PermissionError("Valid token argument required")
     examples = {"numpy-stats": [1.0, 2.0, 3.0, 4.0], "numpy-broadcast": [2.0, 4.0, 6.0], "numpy-matrix": [1.0, 2.0, 3.0, 4.0], "numpy-negative": [-3.0, -1.0, 0.0, 2.0], "numpy-batch": [0.5, 1.5, 2.5, 3.5, 4.5, 5.5], "numpy-sparse-like": [0.0, 0.0, 7.0, 0.0, 0.0, 2.0], "numpy-timeseries": [12.1, 12.4, 12.2, 12.8, 13.0, 12.7], "numpy-pixels": [0.0, 0.25, 0.5, 0.75, 1.0, 0.5], "numpy-normalization": [0.12, 0.38, 0.64, 0.91], "torch-reduction": [3.0, 4.0], "torch-elementwise": [5.0, 10.0, 15.0], "torch-features": [10.0, 20.0, 30.0, 40.0], "torch-negative": [-5.0, -2.0, 1.0, 4.0], "torch-batch": [0.25, 0.5, 0.75, 1.0, 1.25, 1.5], "torch-sparse-like": [0.0, 0.0, 8.0, 0.0, 3.0, 0.0], "torch-batched": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0], "torch-logits": [-2.0, -0.5, 0.5, 2.0], "torch-embedding": [0.11, -0.24, 0.53, 0.72, -0.08, 0.31]}
+    examples.update({"basic-vector": [3.0, 4.0], "feature-vector": [10.0, 20.0, 30.0, 40.0]})
     if name == "list_examples":
         return _result({"version": VERSION, "examples": examples})
     if name == "run_example":

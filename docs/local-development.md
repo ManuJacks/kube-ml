@@ -77,6 +77,6 @@ The OpenAPI 3.1 contract lives in [`openapi.yaml`](openapi.yaml).
 
 ## MCP server
 
-The `numpy-mcp-server` stdio command exposes the same eighteen read-only examples through
+The `numpy-mcp-server` stdio command exposes the same twenty read-only examples through
 `tools/list`, `run_example`, and `run_tensor_example`. It requires the `KUBE_ML_API_TOKEN`
 environment variable and a `token` argument on every `tools/call`.
