@@ -16,7 +16,9 @@ RUN pip install --no-cache-dir \
     'pip>=25.3' \
     'setuptools>=78.1.1' \
     'wheel>=0.46.2' \
-    'jaraco.context>=6.1.0' && \
+    'jaraco.context>=6.1.0' \
+    'msgpack>=1.2.1' \
+    'urllib3>=2.8.0' && \
     pip install --no-cache-dir \
     'django>=4.2' \
     'numpy>=1.24.0' \
