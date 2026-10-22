@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "development", "main" ]
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   test:
     name: Run Unit Tests & Lint
@@ -65,18 +69,60 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Container Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: false
-          load: true
-          tags: kube-ml-platform:latest
+          push: ${{ github.event_name == 'push' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/kube-ml:development
+
+      - name: Promote image tag in GitOps manifests
+        if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+        run: |
+          sed -i -E "s#image: kube-ml-app:v1#image: ${IMAGE}#" clusters/minikube/apps/hardened-manifest.yaml
+          sed -i -E "s#repository: kube-ml-app#repository: ghcr.io/${{ github.repository_owner }}/kube-ml#; s#tag: v1#tag: ${{ github.sha }}#" kube-ml-chart/values.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add clusters/minikube/apps/hardened-manifest.yaml kube-ml-chart/values.yaml
+          git diff --cached --quiet || git commit -m "ci: promote image ${{ github.sha }} [skip ci]"
+          git push
 
       - name: Scan image for vulnerabilities
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: kube-ml-platform:scan
+
+      - name: Scan published image for vulnerabilities
+        if: github.event_name == 'push'
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: kube-ml-platform:latest
+          image-ref: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Scan pull-request image for vulnerabilities
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: kube-ml-platform:scan
           format: table
           exit-code: '1'
           ignore-unfixed: true

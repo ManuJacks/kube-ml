@@ -350,6 +350,20 @@ control is complete. The next maturity steps are:
 These controls should be completed before describing the service as a fully production-certified,
 internet-facing platform.
 
+### Automated image promotion
+
+On pushes to `development`, GitHub Actions now:
+
+1. Builds and publishes a commit-tagged image to GHCR.
+2. Scans the published image with Trivy.
+3. Updates the Kustomize and Helm image references to the immutable commit tag.
+4. Commits that promotion back to `development`.
+5. Lets Flux reconcile the changed manifests into the cluster.
+
+The GHCR package must be readable by the target cluster. For a private package, configure an
+`imagePullSecret` through the cluster's secret-management system; do not commit registry credentials.
+The Flux controllers must already be installed and authorized to reconcile the repository.
+
 ---
 
 ## 6. Repository Structure
