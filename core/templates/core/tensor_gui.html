@@ -78,6 +78,15 @@
             font-weight: 600;
             letter-spacing: 0.04em;
         }
+        .subtitle { color: #5c6770; margin-top: 6px; }
+        .tabs { display: flex; gap: 8px; margin: 24px 0 14px; border-bottom: 1px solid #dce3ea; }
+        .tab { background: transparent; color: #5c6770; padding: 10px 14px; border-bottom: 3px solid transparent; }
+        .tab.active { color: #1d3e61; border-bottom-color: #2b5c8f; }
+        .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+        .example-card { border: 1px solid #dce3ea; border-radius: 8px; padding: 14px; background: #fbfcfd; }
+        .example-card h3 { margin: 0 0 8px; font-size: 15px; color: #1d3e61; }
+        .example-card p { min-height: 42px; color: #5c6770; font-size: 13px; line-height: 1.45; }
+        .example-card button { padding: 8px 12px; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -89,13 +98,21 @@
             <input type="text" id="arrayInput" value="10.0, 20.0, 30.0, 40.0" />
             <button onclick="calculateMatrix()">Execute Tensor Bridge</button>
         </div>
-        <div class="examples">
-            <strong>Runnable examples</strong>
-            <p><small>Basic vector — computes the 3-4-5 L2 norm and doubles each value.</small>
-                <button type="button" onclick="runExample('basic-vector')">Run basic vector</button></p>
-            <p><small>Feature vector — processes four continuous features through the bridge.</small>
-                <button type="button" onclick="runExample('feature-vector')">Run feature vector</button></p>
+        <p class="subtitle">Explore bounded, runnable examples of the NumPy-to-PyTorch tensor bridge.</p>
+        <div class="tabs" role="tablist">
+            <button class="tab active" id="numpy-tab" onclick="showTab('numpy')">NumPy examples</button>
+            <button class="tab" id="torch-tab" onclick="showTab('torch')">PyTorch examples</button>
         </div>
+        <section id="numpy-examples" class="example-grid" role="tabpanel">
+            <article class="example-card"><h3>Array statistics</h3><p>Shape, L2 norm, and scaling for a contiguous float32 array.</p><button onclick="runExample('numpy-stats')">Run example</button></article>
+            <article class="example-card"><h3>Broadcasting</h3><p>Element-wise processing using NumPy-compatible broadcasting semantics.</p><button onclick="runExample('numpy-broadcast')">Run example</button></article>
+            <article class="example-card"><h3>Matrix features</h3><p>Flattened matrix-shaped features passed safely through the bridge.</p><button onclick="runExample('numpy-matrix')">Run example</button></article>
+        </section>
+        <section id="torch-examples" class="example-grid" role="tabpanel" hidden>
+            <article class="example-card"><h3>Tensor reduction</h3><p>Compute a PyTorch L2 reduction while preserving shared memory.</p><button onclick="runExample('torch-reduction')">Run example</button></article>
+            <article class="example-card"><h3>Element-wise tensor</h3><p>Apply a PyTorch scale operation to a bounded tensor.</p><button onclick="runExample('torch-elementwise')">Run example</button></article>
+            <article class="example-card"><h3>Feature inference</h3><p>Process continuous features with the configured worker-thread limit.</p><button onclick="runExample('torch-features')">Run example</button></article>
+        </section>
         <div id="result"></div>
     </div>
 
@@ -146,6 +163,14 @@
             const example = await response.json();
             document.getElementById('arrayInput').value = example.payload.data.join(', ');
             await calculateMatrix();
+        }
+
+        function showTab(tab) {
+            const numpy = tab === 'numpy';
+            document.getElementById('numpy-examples').hidden = !numpy;
+            document.getElementById('torch-examples').hidden = numpy;
+            document.getElementById('numpy-tab').classList.toggle('active', numpy);
+            document.getElementById('torch-tab').classList.toggle('active', !numpy);
         }
     </script>
 </body>

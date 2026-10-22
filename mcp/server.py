@@ -5,9 +5,10 @@ import sys
 import numpy as np
 import torch
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 TOOLS = [
     {"name": "list_examples", "description": "List deterministic tensor examples.", "inputSchema": {"type": "object"}},
+    {"name": "run_example", "description": "Execute one named NumPy or PyTorch example.", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}},
     {"name": "run_tensor_example", "description": "Run a bounded tensor example.", "inputSchema": {"type": "object", "properties": {"data": {"type": "array", "items": {"type": "number"}}}, "required": ["data"]}},
     {"name": "get_platform_metadata", "description": "Get version and safety limits.", "inputSchema": {"type": "object"}},
 ]
@@ -18,8 +19,14 @@ def _result(value):
 
 
 def call_tool(name, arguments):
+    examples = {"numpy-stats": [1.0, 2.0, 3.0, 4.0], "numpy-broadcast": [2.0, 4.0, 6.0], "numpy-matrix": [1.0, 2.0, 3.0, 4.0], "torch-reduction": [3.0, 4.0], "torch-elementwise": [5.0, 10.0, 15.0], "torch-features": [10.0, 20.0, 30.0, 40.0]}
     if name == "list_examples":
-        return _result({"version": VERSION, "examples": {"basic-vector": [3.0, 4.0], "feature-vector": [10.0, 20.0, 30.0, 40.0]}})
+        return _result({"version": VERSION, "examples": examples})
+    if name == "run_example":
+        example_name = arguments.get("name") if isinstance(arguments, dict) else None
+        if example_name not in examples:
+            raise ValueError("Unknown example")
+        return call_tool("run_tensor_example", {"data": examples[example_name]})
     if name == "get_platform_metadata":
         return _result({"version": VERSION, "max_elements": 1_000_000, "threads": torch.get_num_threads(), "read_only": True})
     if name == "run_tensor_example":

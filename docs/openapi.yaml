@@ -1,0 +1,81 @@
+openapi: 3.1.0
+info:
+  title: Kube-ML Tensor Platform API
+  version: 0.1.2
+  description: >-
+    Read-only operational metadata and bounded NumPy/PyTorch tensor processing.
+    Authentication and authorization are intentionally deferred; do not expose this
+    interface beyond a trusted boundary until they are implemented.
+servers:
+  - url: http://localhost:8000
+paths:
+  /predict:
+    post:
+      summary: Process a numeric vector
+      operationId: predictVector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VectorRequest' }
+      responses:
+        '200':
+          description: Tensor processing result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PredictionResponse' }
+        '400': { description: Invalid, empty, oversized, or non-finite input }
+        '405': { description: Method not allowed }
+  /api/v1/examples:
+    get:
+      summary: List runnable examples
+      operationId: listExamples
+      responses:
+        '200':
+          description: Example catalog
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/ExampleCatalog' } }
+  /api/v1/examples/{name}:
+    get:
+      summary: Get a named example payload
+      operationId: getExample
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Example definition }
+        '404': { description: Unknown example }
+  /healthz:
+    get: { summary: Liveness probe, operationId: health, responses: { '200': { description: Healthy } } }
+  /readyz:
+    get: { summary: Readiness probe, operationId: readiness, responses: { '200': { description: Ready } } }
+  /metrics:
+    get: { summary: Prometheus metrics, operationId: metrics, responses: { '200': { description: Prometheus exposition } } }
+components:
+  schemas:
+    VectorRequest:
+      type: object
+      required: [data]
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          minItems: 1
+          maxItems: 1000000
+          items: { type: number, format: float }
+    PredictionResponse:
+      type: object
+      required: [original, shape, l2_norm, numpy_processed, zero_copy, threads]
+      properties:
+        original: { type: array, items: { type: number } }
+        shape: { type: string, example: '(4,)' }
+        l2_norm: { type: number, format: float }
+        numpy_processed: { type: array, items: { type: number } }
+        zero_copy: { type: boolean }
+        threads: { type: integer, example: 2 }
+    ExampleCatalog:
+      type: object
+      required: [version, max_elements, examples]
+      properties:
+        version: { type: string }
+        max_elements: { type: integer, example: 1000000 }
+        examples: { type: object, additionalProperties: true }
