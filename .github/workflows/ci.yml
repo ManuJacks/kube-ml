@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "development", "main" ]
 
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
 jobs:
   test:
     name: Run Unit Tests & Lint
@@ -23,12 +28,36 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --extra-index-url https://download.pytorch.org/whl/cpu torch>=2.0.0
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu 'torch>=2.0.0'
           pip install -e .
 
       - name: Run Django & Tensor Bridge Tests
         run: |
           python manage.py test core
+
+      - name: Validate Python formatting and syntax
+        run: |
+          python -m compileall -q config core mcp
+
+      - name: Run lint checks
+        run: |
+          pip install ruff
+          ruff check config core mcp
+
+      - name: Validate Kubernetes manifests
+        run: |
+          kubectl kustomize clusters/minikube/apps >/dev/null
+
+      - name: Validate Helm templates
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.0
+
+      - run: helm lint kube-ml-chart
+      - run: helm template kube-ml kube-ml-chart >/dev/null
+
+      - name: Dependency vulnerability audit
+        run: pip install pip-audit && pip-audit
 
   docker-build:
     name: Validate Docker Build
@@ -41,9 +70,81 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Container Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: false
-          tags: kube-ml-platform:latest
+          push: ${{ github.event_name == 'push' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: |
+            ghcr.io/manujacks/kube-ml:${{ github.sha }}
+            ghcr.io/manujacks/kube-ml:development
+
+      - name: Promote image tag in GitOps manifests
+        if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+        env:
+          IMAGE: ghcr.io/manujacks/kube-ml:${{ github.sha }}
+        run: |
+          # Replace the current image regardless of which immutable tag was promoted previously.
+          sed -i -E "s#^([[:space:]]*)image: .*#\1image: ${IMAGE}#" clusters/minikube/apps/hardened-manifest.yaml
+          sed -i -E "s#^([[:space:]]*repository: ).*#\1ghcr.io/manujacks/kube-ml#; s#^([[:space:]]*tag: ).*#\1${{ github.sha }}#" kube-ml-chart/values.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add clusters/minikube/apps/hardened-manifest.yaml kube-ml-chart/values.yaml
+          git diff --cached --quiet || git commit -m "ci: promote image ${{ github.sha }} [skip ci]"
+          git push
+
+      - name: Scan image for vulnerabilities
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: kube-ml-platform:scan
+
+      - name: Scan published image for vulnerabilities
+        if: github.event_name == 'push'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/manujacks/kube-ml:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Generate image SBOM
+        if: github.event_name == 'push'
+        uses: anchore/sbom-action@v0
+        with:
+          image: ghcr.io/manujacks/kube-ml:${{ github.sha }}
+          artifact-name: kube-ml-${{ github.sha }}.spdx.json
+          output-file: kube-ml-${{ github.sha }}.spdx.json
+
+      - name: Install Cosign
+        if: github.event_name == 'push'
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Sign published image
+        if: github.event_name == 'push'
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+          IMAGE: ghcr.io/manujacks/kube-ml:${{ github.sha }}
+        run: cosign sign --yes "${IMAGE}"
+
+      - name: Scan pull-request image for vulnerabilities
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: kube-ml-platform:scan
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH

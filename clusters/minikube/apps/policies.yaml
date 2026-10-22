@@ -1,0 +1,60 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: kube-ml-image-governance
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+  - name: require-immutable-image
+    match:
+      any:
+      - resources:
+          kinds: [Pod]
+          namespaces: [ml-workloads]
+    validate:
+      message: "Workloads must use an immutable image digest or commit tag."
+      pattern:
+        spec:
+          containers:
+          - image: "*:*"
+  - name: disallow-privilege-escalation
+    match:
+      any:
+      - resources:
+          kinds: [Pod]
+          namespaces: [ml-workloads]
+    validate:
+      message: "Privilege escalation must be disabled."
+      pattern:
+        spec:
+          containers:
+          - securityContext:
+              allowPrivilegeEscalation: false
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-ml-slos
+  namespace: ml-workloads
+  labels:
+    app: kube-ml-platform
+spec:
+  groups:
+  - name: kube-ml.slos
+    interval: 30s
+    rules:
+    - alert: KubeMLHighErrorRate
+      expr: sum(rate(kube_ml_predictions_total{status="error"}[5m])) / sum(rate(kube_ml_predictions_total[5m])) > 0.01
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: Kube-ML prediction error rate is above 1 percent
+    - alert: KubeMLReadinessFailure
+      expr: kube_pod_status_ready{namespace="ml-workloads",condition="true",pod=~"kube-ml-platform.*"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: Kube-ML has no ready application pod

@@ -1,21 +1,46 @@
 import json
+
 import numpy as np
 import torch
-from django.test import SimpleTestCase, Client
+from django.test import Client, SimpleTestCase, override_settings
+
 from core.views import MAX_ELEMENTS
 
+
+@override_settings(KUBE_ML_API_TOKEN="test-token")
 class TensorBridgeTests(SimpleTestCase):
     def setUp(self):
-        self.client = Client()
+        self.client = Client(HTTP_AUTHORIZATION="Bearer test-token")
+
+    def test_protected_endpoint_requires_bearer_token(self):
+        response = Client().get('/api/v1/examples')
+        self.assertEqual(response.status_code, 401)
 
     def test_gui_renders_successfully(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'NumPy & PyTorch Zero-Copy Platform')
+        self.assertContains(response, 'v0.1.5')
 
     def test_method_not_allowed_for_get_predict(self):
         response = self.client.get('/predict')
         self.assertEqual(response.status_code, 405)
+
+    def test_health_readiness_and_metrics_endpoints(self):
+        self.assertEqual(self.client.get('/healthz').status_code, 200)
+        self.assertEqual(self.client.get('/readyz').json()['status'], 'ready')
+        self.assertIn('kube_ml_predictions_total', self.client.get('/metrics').content.decode())
+
+    def test_examples_api_is_read_only_and_deterministic(self):
+        response = self.client.get('/api/v1/examples')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('basic-vector', response.json()['examples'])
+        example = self.client.get('/api/v1/examples/basic-vector')
+        self.assertEqual(example.json()['payload'], {'data': [3.0, 4.0]})
+
+    def test_non_finite_values_are_rejected(self):
+        response = self.client.post('/predict', data=json.dumps({'data': [1.0, float('nan')]}), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
 
     def test_zero_copy_and_calculations(self):
         payload = {"data": [3.0, 4.0]}

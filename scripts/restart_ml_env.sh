@@ -62,8 +62,8 @@ echo -e "${BLUE}[3/5] FIX: Re-aligning Environment Cache & Rebuilding Django App
 eval $(minikube docker-env)
 
 # Safely injects the up-to-date image bytes straight into the cluster
-docker build -t django-numpy-app:v1 $(dirname "$0")
-echo -e "${GREEN}✓ Local image 'django-numpy-app:v1' successfully synchronized.${NC}\n"
+docker build -t kube-ml-app:v1 $(dirname "$0")
+echo -e "${GREEN}✓ Local image 'kube-ml-app:v1' successfully synchronized.${NC}\n"
 
 echo -e "${BLUE}Waiting for Istio Control Plane webhook to initialize...${NC}"
 # Blocks execution here until the control plane pod is 100% online and ready to sign CSRs

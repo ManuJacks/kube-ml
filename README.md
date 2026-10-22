@@ -1,326 +1,138 @@
-# Cloud-Native NumPy & PyTorch Platform with MCP & SRE Hardening
+<div align="center">
+
+# kube-ml
+
+**A hardened, cloud-native reference platform for serving NumPy & PyTorch tensor workloads on Kubernetes.**
+
+Zero-copy tensor bridge · Istio Ambient mTLS · Flux GitOps · PSS Restricted · MCP server
 
 [![CI/CD Pipeline](https://github.com/ManuJacks/kube-ml/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/ManuJacks/kube-ml/actions/workflows/ci.yml)
 
-Production-grade, enterprise-tier AI platform reference architecture integrating:
-- **Django** web application framework.
-- **Zero-Copy Tensor Bridge** leveraging `torch.from_numpy()` with C-contiguous `float32` arrays.
-- **CPU Throttling**: Hard limit via `torch.set_num_threads(2)` to prevent CPU thrashing in containerized/pod environments.
-- **OOM Cascading Shield**: Strict payload size ceiling (`MAX_ELEMENTS = 1,000,000`) and 25MB body buffer limits.
-- **Model Context Protocol (MCP)** server integration.
-- **Minikube / Kubernetes** deployment with HPA scaling and Prometheus observability.
+[Quick start](#quick-start) · [Architecture](#architecture) · [Docs](docs/README.md) · [Status](#status)
+
+</div>
+
+![kube-ml GUI showing the NumPy and PyTorch example interface](docs/assets/kube-ml-gui.png)
+
+_The interactive GUI provides runnable, bounded examples and reports the zero-copy tensor result._
 
 ---
 
-## 1. Local Development & Testing
+## Why this exists
 
-### Prerequisites
-- Python 3.10+
-- `pip` and `python3-venv`
+Most ML-serving demos stop at `docker run`. **kube-ml** shows the whole path: a small Django
+service that bridges NumPy and PyTorch without copying, wrapped in the guardrails ML workloads
+actually need in a cluster (CPU and memory limits, request-size ceilings) and shipped through a
+signed, GitOps-driven delivery pipeline with a zero-trust security posture.
 
-### Setup Virtual Environment
-```bash
-# Using Makefile
-make venv
-make install
+It is a **reference implementation** for learning, demos, and as a starting point, not a
+turnkey production service. See [Status](#status) for exactly what is and isn't covered.
 
-# Or manually:
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -e .
+## Highlights
+
+| | |
+| --- | --- |
+| **Zero-copy tensor bridge** | `torch.from_numpy()` over C-contiguous `float32` arrays shares memory between NumPy and PyTorch |
+| **Container-aware limits** | `torch.set_num_threads(2)` prevents CPU thrashing in pods; `MAX_ELEMENTS = 1,000,000` and a 25 MB body cap bound each request |
+| **MCP server** | `numpy-mcp-server` exposes 20 read-only examples to AI agents over stdio |
+| **Istio Ambient mesh** | Sidecar-free strict mTLS and HTTPS gateway termination via the Gateway API |
+| **Flux CD GitOps** | Continuous reconciliation with pruning; immutable, auto-promoted image tags |
+| **Zero-trust hardening** | Default-deny NetworkPolicies, least-privilege RBAC, Pod Security Standards *Restricted*, read-only rootfs |
+| **Supply-chain checks** | Tests, Ruff, Helm/Kustomize rendering, `pip-audit`, Trivy, SPDX SBOM, keyless Cosign signing |
+| **Operability** | Health and readiness probes, Prometheus metrics, HPA autoscaling |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    C[Client / MCP agent] -->|HTTPS :443| GW[Istio Gateway]
+    GW -->|mTLS via ztunnel| APP[Django + PyTorch pods]
+    APP -.-> M[/metrics → Prometheus/]
+
+    DEV[git push] --> CI[GitHub Actions<br/>test · scan · sign]
+    CI --> REG[(GHCR)]
+    CI -->|promote tag| DEV
+    FLUX[Flux CD] -->|watches| DEV
+    FLUX -->|reconciles| APP
 ```
-*(Tip: To install CPU-only PyTorch for faster download: `pip install torch --index-url https://download.pytorch.org/whl/cpu`)*
 
-### Run Automated Unit Tests
+More diagrams and the repository layout are in [docs/architecture.md](docs/architecture.md).
+
+## Quick start
+
+Requires Python 3.10+.
+
 ```bash
-python manage.py test core
-# or: make test
+make venv && make install
+
+# Protected endpoints need a bearer token
+export KUBE_ML_API_TOKEN="$(openssl rand -hex 32)"
+printf 'KUBE_ML_API_TOKEN=%s\n' "$KUBE_ML_API_TOKEN" > .env.local
+
+make test       # run the test suite
+make run-dev    # http://localhost:8000
 ```
-Verifies:
-- Zero-copy shared memory buffer integrity (`np.shares_memory`).
-- CPU thread constraint enforcement (`torch.get_num_threads() == 2`).
-- Payload size boundaries (`MAX_ELEMENTS = 1,000,000` and `DATA_UPLOAD_MAX_MEMORY_SIZE`).
-- Error handling (empty payloads, non-list structures, invalid JSON).
-- HTML web portal rendering.
 
-### Run Local Development Server
+Try the API:
+
 ```bash
-python manage.py runserver 0.0.0.0:8000
-# or: make run-dev
+curl -X POST http://localhost:8000/predict \
+  -H "Authorization: Bearer $KUBE_ML_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"data": [10.0, 20.0, 30.0, 40.0]}'
 ```
-- **Web UI**: Navigate to `http://localhost:8000/` to test tensor computations interactively.
-- **API Endpoint**:
-  ```bash
-  curl -X POST http://localhost:8000/predict \
-    -H "Content-Type: application/json" \
-    -d '{"data": [10.0, 20.0, 30.0, 40.0]}'
-  ```
 
----
+Or open <http://localhost:8000/> for the interactive UI and paste your token into the password
+field.
 
-## 2. Deploying to Minikube
+### On Kubernetes
 
-Per the project [blueprint.md](blueprint.md), the Kubernetes architecture uses standard manifests structured under `clusters/minikube/apps/`.
-
-### Prerequisites
-- `minikube` installed and running (`minikube status`)
-- `kubectl` configured
-
-### Step 1: Start Minikube & Configure Docker Daemon
-Point your local Docker CLI to Minikube's in-cluster Docker daemon so images built locally are immediately visible without an external registry:
 ```bash
-# 1. Start minikube if not already running
 minikube start --driver=docker
-
-# 2. Point terminal Docker environment to Minikube's Docker daemon
 eval $(minikube docker-env)
+docker build -t kube-ml-app:v1 .
+kubectl apply -k clusters/minikube/apps
 ```
 
-### Step 2: Build the Container Image
-With Minikube's Docker environment active, build the container image:
-```bash
-docker build -t django-numpy-app:v1 .
-```
+Full walkthroughs: [Minikube](docs/kubernetes-minikube.md) ·
+[HTTPS via Istio](docs/service-mesh.md) · [Flux GitOps](docs/gitops-and-delivery.md)
 
-### Step 3: Create the Kubernetes Manifests (`clusters/minikube/apps/`)
-Create the target deployment and service files:
+## API
 
-#### `clusters/minikube/apps/deployment.yaml`
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kube-ml-platform
-  labels:
-    app: kube-ml-platform
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: kube-ml-platform
-  template:
-    metadata:
-      labels:
-        app: kube-ml-platform
-    spec:
-      containers:
-      - name: kube-ml-app
-        image: django-numpy-app:v1
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 8000
-          name: http
-        resources:
-          requests:
-            cpu: "500m"
-            memory: "512Mi"
-          limits:
-            cpu: "1000m"
-            memory: "1Gi"
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 15
-```
+| Method | Path | Auth | Purpose |
+| --- | --- | :---: | --- |
+| `POST` | `/predict` | yes | Tensor computation |
+| `GET` | `/api/v1/examples` | yes | Deterministic examples and limits |
+| `GET` | `/metrics` | yes | Prometheus metrics |
+| `GET` | `/healthz` | no | Liveness (includes app version) |
+| `GET` | `/readyz` | no | Readiness |
 
-#### `clusters/minikube/apps/service.yaml`
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: kube-ml-service
-spec:
-  type: NodePort
-  selector:
-    app: kube-ml-platform
-  ports:
-  - port: 8000
-    targetPort: 8000
-    nodePort: 30080
-```
+Full contract: [`docs/openapi.yaml`](docs/openapi.yaml).
 
-#### `clusters/minikube/apps/hpa.yaml`
-```yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: kube-ml-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: kube-ml-platform
-  minReplicas: 1
-  maxReplicas: 5
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-```
+## Documentation
 
-### Step 4: Apply Manifests to the Cluster
-```bash
-kubectl apply -f clusters/minikube/apps/
-```
+| Guide | Topic |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Diagrams and repository layout |
+| [Local development](docs/local-development.md) | Setup, tests, endpoints, MCP server |
+| [Kubernetes on Minikube](docs/kubernetes-minikube.md) | Build, deploy, access |
+| [Service mesh & HTTPS](docs/service-mesh.md) | Istio Ambient, mTLS, gateway access |
+| [GitOps & delivery](docs/gitops-and-delivery.md) | Flux, CI pipeline, image promotion |
+| [Security hardening](docs/security-hardening.md) | Network policy, RBAC, PSS, supply chain |
+| [Authentication](docs/authentication.md) | Bearer tokens and rotation |
+| [Roadmap](docs/roadmap.md) | What's left for production |
 
-Verify rollout:
-```bash
-kubectl rollout status deployment/kube-ml-platform
-kubectl get pods -l app=kube-ml-platform
-kubectl get svc kube-ml-service
-```
+## Status
 
-### Step 5: Access the Service in Minikube
-Open the service directly in your browser:
-```bash
-minikube service kube-ml-service
-```
-Or forward a port to your local machine:
-```bash
-kubectl port-forward svc/kube-ml-service 8000:8000
-```
-Then visit `http://localhost:8000/`.
+| Area | State |
+| --- | --- |
+| Tensor API, MCP server, UI | Working, tested |
+| Bearer-token auth | Implemented (single shared token) |
+| Mesh, NetworkPolicy, PSS, RBAC | Defined as manifests |
+| CI, SBOM, Cosign signing, GitOps promotion | Running in the pipeline |
+| Signature admission enforcement | Not yet enforced in-cluster |
+| OIDC/JWT, tenancy, quotas, SLOs, backups | Not yet implemented |
+| Ephemeral-cluster end-to-end tests | Planned |
 
----
-
-## 3. Istio Ambient Mesh & HTTPS Ingress Gateway
-
-The platform leverages **Istio Ambient Mode** and Kubernetes Gateway API for zero-sidecar, high-performance service mesh networking with mutual TLS (mTLS) and HTTPS edge termination.
-
-### Architecture Overview
-1. **Istio Ambient Mode**: The namespace (e.g. `ml-workloads`) is labeled `istio.io/dataplane-mode=ambient`. Traffic is routed through shared node-level `ztunnel` proxies rather than injecting heavy sidecar containers.
-2. **Strict mTLS**: Enforced via `PeerAuthentication` (`mode: STRICT`), ensuring all East-West pod-to-pod communications are fully encrypted.
-3. **HTTPS Edge Gateway**: An Istio Gateway listener binds to port `443` with `mode: Terminate`, utilizing the TLS secret `django-credential-secret`.
-
-### Accessing HTTPS in Minikube
-
-Because Minikube operates as a local Docker cluster without a cloud load balancer provider, `LoadBalancer` services show `EXTERNAL-IP: <pending>` unless routed. Choose any of the following methods to access the `kube-ml-gateway`:
-
-#### Method 1: Direct via Gateway NodePort (Fastest — No Sudo Required)
-The Istio Gateway controller (`kube-ml-gateway-istio`) dynamically allocates a NodePort for port 443 (e.g., `32296`):
-```bash
-# Retrieve Minikube IP and dynamic HTTPS NodePort for the gateway
-GATEWAY_IP=$(minikube ip)
-NODE_PORT=$(kubectl get svc kube-ml-gateway-istio -n ml-workloads -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}')
-
-echo "Access GUI at: https://${GATEWAY_IP}:${NODE_PORT}/"
-
-# Test via curl (use -k for the self-signed certificate)
-curl -k https://${GATEWAY_IP}:${NODE_PORT}/
-```
-Open **`https://${GATEWAY_IP}:${NODE_PORT}/`** in your browser (e.g. `https://192.168.49.2:32296/`) and accept the self-signed TLS prompt. You will see the live interactive **Cloud-Native NumPy & PyTorch Platform**!
-
-#### Method 2: Standard Port 443 via `minikube tunnel`
-To route standard port `443` traffic and allocate an external IP directly:
-1. In a separate terminal session, run:
-   ```bash
-   sudo minikube tunnel
-   ```
-2. Verify that `kube-ml-gateway-istio` receives an `EXTERNAL-IP`:
-   ```bash
-   kubectl get svc kube-ml-gateway-istio -n ml-workloads
-   ```
-3. Access directly via the assigned external IP on standard HTTPS:
-   ```bash
-   curl -k https://<EXTERNAL-IP>/
-   ```
-
-#### Method 3: Local Port-Forwarding
-Alternatively, forward the HTTPS gateway directly to a local port:
-```bash
-kubectl port-forward svc/kube-ml-gateway-istio -n ml-workloads 8443:443
-```
-Then open `https://localhost:8443/` in your browser.
-
----
-
-## 4. GitOps Continuous Delivery with Flux CD
-
-The repository is configured for automated GitOps continuous reconciliation via [Flux CD](https://fluxcd.io).
-
-### Structure
-- `clusters/minikube/apps/kustomization.yaml`: Kustomizes the application manifests (`deployment.yaml`, `service.yaml`, `hpa.yaml`).
-- `clusters/minikube/flux-system/gotk-sync.yaml`:
-  - `GitRepository`: Watches `https://github.com/ManuJacks/kube-ml.git` on the `development` branch with a 1-minute poll interval.
-  - `Kustomization`: Reconciles `./clusters/minikube/apps` into the `ml-workloads` namespace with automated pruning.
-
-### Bootstrapping Flux on Minikube
-
-1. **Install Flux into Minikube**:
-   ```bash
-   flux install
-   ```
-
-2. **Apply the GitOps Sync Manifests**:
-   ```bash
-   kubectl apply -k clusters/minikube/flux-system/
-   ```
-
-3. **Verify GitOps Reconciliation**:
-   ```bash
-   flux get sources git
-   flux get kustomizations
-   ```
-
-4. **Trigger Manual Immediate Reconciliation**:
-   ```bash
-   flux reconcile kustomization kube-ml-apps --with-source
-   ```
-
----
-
-## 5. Repository Structure
-```text
-.
-├── .github/workflows/ci.yml         # GitHub Actions CI pipeline (Unit tests + Docker)
-├── blueprint.md                     # Architectural specification
-├── pyproject.toml                   # Python build metadata & entry points
-├── Makefile                         # Automation targets
-├── Dockerfile                       # Multi-stage/lean container build
-├── manage.py                        # Django management script
-├── config/                          # Django project configuration
-│   ├── settings.py                  # Core settings & OOM body limit
-│   ├── urls.py                      # Root routing
-│   └── wsgi.py                      # WSGI entry point
-├── core/                            # Core tensor application
-│   ├── apps.py                      # App configuration
-│   ├── views.py                     # Zero-copy tensor bridge & endpoints
-│   ├── urls.py                      # Core route declarations
-│   ├── tests.py                     # Unit & integration test suite
-│   └── templates/core/              # Interactive HTML GUI
-│       └── tensor_gui.html
-├── mcp/                             # Model Context Protocol server
-│   └── server.py
-└── clusters/minikube/               # GitOps & Kubernetes manifests
-    ├── apps/                        # Application Kustomization (Deployment, Service, HPA)
-    │   ├── kustomization.yaml
-    │   ├── deployment.yaml
-    │   ├── service.yaml
-    │   └── hpa.yaml
-    └── flux-system/                 # Flux GitOps source & sync manifests
-        ├── kustomization.yaml
-        └── gotk-sync.yaml
-```
-│   ├── views.py                     # Zero-copy tensor bridge & endpoints
-│   ├── urls.py                      # Core route declarations
-│   ├── tests.py                     # Unit & integration test suite
-│   └── templates/core/              # Interactive HTML GUI
-│       └── tensor_gui.html
-├── mcp/                             # Model Context Protocol server
-│   └── server.py
-└── clusters/minikube/               # Kubernetes & monitoring manifests
-    ├── apps/                        # Deployment, Service, HPA
-    └── monitoring/                  # Prometheus rules & Alertmanager
-```
+Treat this as a hardened reference, not a production-certified, internet-facing platform. The
+[roadmap](docs/roadmap.md) lists what remains.

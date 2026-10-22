@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cloud-native-numpy-platform"
-version = "0.1.0"
+version = "0.1.5"
 description = "Cloud-Native NumPy & PyTorch Platform with MCP & SRE Hardening"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,6 +15,8 @@ dependencies = [
     "django>=4.2",
     "numpy>=1.24.0",
     "torch>=2.0.0",
+    "gunicorn>=22.0",
+    "prometheus-client>=0.20.0",
 ]
 
 [project.scripts]
@@ -23,3 +25,11 @@ numpy-mcp-server = "mcp.server:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["config*", "core*", "mcp*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]

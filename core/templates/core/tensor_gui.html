@@ -70,20 +70,90 @@
             font-size: 12px;
             font-weight: bold;
         }
+        .version-badge {
+            display: inline-block;
+            margin-top: -4px;
+            color: #5c6770;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+        .subtitle { color: #5c6770; margin-top: 6px; }
+        .tabs { display: flex; gap: 8px; margin: 24px 0 14px; border-bottom: 1px solid #dce3ea; }
+        .tab { background: transparent; color: #5c6770; padding: 10px 14px; border-bottom: 3px solid transparent; }
+        .tab.active { color: #1d3e61; border-bottom-color: #2b5c8f; }
+        .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+        .example-grid[hidden] { display: none; }
+        .example-card { border: 1px solid #dce3ea; border-radius: 8px; padding: 14px; background: #fbfcfd; }
+        .example-card h3 { margin: 0 0 8px; font-size: 15px; color: #1d3e61; }
+        .example-card p { min-height: 42px; color: #5c6770; font-size: 13px; line-height: 1.45; }
+        .example-card button { padding: 8px 12px; font-size: 13px; }
+        .help-button { background: #eef5fa; color: #1d3e61; border: 1px solid #b9cfe0; padding: 8px 12px; font-size: 13px; }
+        .help-panel { margin: 12px 0; padding: 16px; border-left: 4px solid #2b5c8f; background: #f5f9fc; color: #34495e; font-size: 13px; line-height: 1.55; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>NumPy & PyTorch Zero-Copy Platform</h2>
+        <div class="version-badge" aria-label="Application version">v{{ app_version }}</div>
         <p>Enter continuous features as a vector (comma-separated float values):</p>
+        <div class="input-group">
+            <input type="password" id="apiToken" placeholder="Paste your KUBE_ML_API_TOKEN" autocomplete="off" />
+        </div>
         <div class="input-group">
             <input type="text" id="arrayInput" value="10.0, 20.0, 30.0, 40.0" />
             <button onclick="calculateMatrix()">Execute Tensor Bridge</button>
         </div>
+        <p class="subtitle">Explore bounded, runnable examples of the NumPy-to-PyTorch tensor bridge.</p>
+        <button class="help-button" type="button" onclick="toggleHelp()">How does an example work?</button>
+        <div id="help-panel" class="help-panel" hidden>
+            <h3>How to use the examples</h3>
+            <ol>
+                <li>Select either the <strong>NumPy</strong> or <strong>PyTorch</strong> tab. Only that module's examples will be shown.</li>
+                <li>Read the description, then select <strong>Run example</strong>.</li>
+                <li>The GUI loads the vector and sends it to <code>/predict</code>.</li>
+                <li>The API converts it to contiguous <code>float32</code>, bridges it to PyTorch without copying, calculates the L2 norm, and returns a scaled result.</li>
+                <li>The result reports shape, norm, scaled output, zero-copy status, and worker-thread count.</li>
+            </ol>
+            <p><strong>Example:</strong> <code>[3, 4]</code> has an L2 norm of <code>5</code>; the scaled result is <code>[6, 8]</code>, with <code>zero_copy: true</code>.</p>
+            <p><strong>Safety:</strong> values must be finite, arrays cannot be empty, and input is limited to 1,000,000 elements. Examples cannot change Kubernetes or execute shell commands.</p>
+            <p><strong>Authentication:</strong> paste the local Bearer token above. It is held only in this browser tab and sent to protected API calls.</p>
+        </div>
+        <div class="tabs" role="tablist">
+            <button class="tab active" id="numpy-tab" onclick="showTab('numpy')">NumPy examples</button>
+            <button class="tab" id="torch-tab" onclick="showTab('torch')">PyTorch examples</button>
+        </div>
+        <section id="numpy-examples" class="example-grid" role="tabpanel">
+            <article class="example-card"><h3>Array statistics</h3><p>Shape, L2 norm, and scaling for a contiguous float32 array.</p><button onclick="runExample('numpy-stats')">Run example</button></article>
+            <article class="example-card"><h3>Broadcasting</h3><p>Element-wise processing using NumPy-compatible broadcasting semantics.</p><button onclick="runExample('numpy-broadcast')">Run example</button></article>
+            <article class="example-card"><h3>Matrix features</h3><p>Flattened matrix-shaped features passed safely through the bridge.</p><button onclick="runExample('numpy-matrix')">Run example</button></article>
+            <article class="example-card"><h3>Signed values</h3><p>Signed values crossing zero with finite numerical validation.</p><button onclick="runExample('numpy-negative')">Run example</button></article>
+            <article class="example-card"><h3>Feature batch</h3><p>A larger bounded batch converted to contiguous float32 values.</p><button onclick="runExample('numpy-batch')">Run example</button></article>
+            <article class="example-card"><h3>Sparse-like vector</h3><p>Mostly zero-valued features with a small active signal.</p><button onclick="runExample('numpy-sparse-like')">Run example</button></article>
+            <article class="example-card"><h3>Time-series window</h3><p>Ordered sensor readings suitable for rolling-window processing.</p><button onclick="runExample('numpy-timeseries')">Run example</button></article>
+            <article class="example-card"><h3>Pixel channels</h3><p>Normalized pixel-like channel values in a bounded vector.</p><button onclick="runExample('numpy-pixels')">Run example</button></article>
+            <article class="example-card"><h3>Normalized features</h3><p>Already-normalized values ready for model input.</p><button onclick="runExample('numpy-normalization')">Run example</button></article>
+        </section>
+        <section id="torch-examples" class="example-grid" role="tabpanel" hidden>
+            <article class="example-card"><h3>Tensor reduction</h3><p>Compute a PyTorch L2 reduction while preserving shared memory.</p><button onclick="runExample('torch-reduction')">Run example</button></article>
+            <article class="example-card"><h3>Element-wise tensor</h3><p>Apply a PyTorch scale operation to a bounded tensor.</p><button onclick="runExample('torch-elementwise')">Run example</button></article>
+            <article class="example-card"><h3>Feature inference</h3><p>Process continuous features with the configured worker-thread limit.</p><button onclick="runExample('torch-features')">Run example</button></article>
+            <article class="example-card"><h3>Signed tensor</h3><p>Reduce signed tensor values across a zero-crossing feature set.</p><button onclick="runExample('torch-negative')">Run example</button></article>
+            <article class="example-card"><h3>Tensor batch</h3><p>Process six bounded values with the worker-thread constraint.</p><button onclick="runExample('torch-batch')">Run example</button></article>
+            <article class="example-card"><h3>Sparse-like tensor</h3><p>Process a tensor with two active values among zero features.</p><button onclick="runExample('torch-sparse-like')">Run example</button></article>
+            <article class="example-card"><h3>Batched inference</h3><p>Process a small batched-inference style feature window.</p><button onclick="runExample('torch-batched')">Run example</button></article>
+            <article class="example-card"><h3>Logits-like values</h3><p>Process signed scoring values before downstream classification.</p><button onclick="runExample('torch-logits')">Run example</button></article>
+            <article class="example-card"><h3>Embedding vector</h3><p>Process a compact embedding-like vector with shared memory.</p><button onclick="runExample('torch-embedding')">Run example</button></article>
+        </section>
         <div id="result"></div>
     </div>
 
     <script>
+        function authHeaders() {
+            const token = document.getElementById('apiToken').value.trim();
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
+        }
+
         async function calculateMatrix() {
             const input = document.getElementById('arrayInput').value;
             const dataArray = input.split(',').map(item => parseFloat(item.trim())).filter(val => !isNaN(val));
@@ -99,7 +169,7 @@
             try {
                 const response = await fetch('/predict', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
                     body: JSON.stringify({ data: dataArray })
                 });
 
@@ -123,6 +193,27 @@
                 resultDiv.style.borderLeftColor = '#dc3545';
                 resultDiv.innerHTML = `<span style="color:#dc3545;"><strong>Error:</strong> ${err.message}</span>`;
             }
+        }
+
+        async function runExample(name) {
+            const response = await fetch(`/api/v1/examples/${name}`, { headers: authHeaders() });
+            const example = await response.json();
+            if (!response.ok) throw new Error(example.error || 'Authentication failed');
+            document.getElementById('arrayInput').value = example.payload.data.join(', ');
+            await calculateMatrix();
+        }
+
+        function showTab(tab) {
+            const numpy = tab === 'numpy';
+            document.getElementById('numpy-examples').hidden = !numpy;
+            document.getElementById('torch-examples').hidden = numpy;
+            document.getElementById('numpy-tab').classList.toggle('active', numpy);
+            document.getElementById('torch-tab').classList.toggle('active', !numpy);
+        }
+
+        function toggleHelp() {
+            const panel = document.getElementById('help-panel');
+            panel.hidden = !panel.hidden;
         }
     </script>
 </body>

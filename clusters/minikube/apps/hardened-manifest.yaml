@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ml-workloads
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    istio.io/dataplane-mode: ambient
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-ml-sa
+  namespace: ml-workloads
+  annotations:
+    # Example for cloud IAM role integration:
+    # eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/kube-ml-workload-role
+    # iam.gke.io/gcp-service-account: kube-ml-sa@project.iam.gserviceaccount.com
+automountServiceAccountToken: false
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: ml-workloads
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-istio-and-dns
+  namespace: ml-workloads
+spec:
+  podSelector:
+    matchLabels:
+      app: kube-ml-platform
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic originating from Istio ingress/mesh proxies
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: istio-system
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  # Allow CoreDNS for service resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-ml-platform
+  namespace: ml-workloads
+  labels:
+    app: kube-ml-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kube-ml-platform
+  template:
+    metadata:
+      labels:
+        app: kube-ml-platform
+    spec:
+      serviceAccountName: kube-ml-sa
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: kube-ml-app
+        image: ghcr.io/manujacks/kube-ml:1d2e5c03902fa0e43f4fad170e88c36da2ef2b1b
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DJANGO_ALLOWED_HOSTS
+          value: "*"
+        - name: KUBE_ML_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: kube-ml-api-token
+              key: token
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        ports:
+        - containerPort: 8000
+          name: http
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+      volumes:
+      - name: tmp
+        emptyDir:
+          medium: Memory
+          sizeLimit: 128Mi

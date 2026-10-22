@@ -21,13 +21,13 @@ install: venv
 	$(BIN)/pip install -e .
 
 run-dev:
-	$(BIN)/python manage.py runserver 0.0.0.0:8000
+	set -a; [ ! -f .env.local ] || . ./.env.local; set +a; $(BIN)/python manage.py runserver 0.0.0.0:8000
 
 test:
 	$(BIN)/python manage.py test core
 
 docker-build:
-	docker build -t django-numpy-app:v1 .
+	docker build -t kube-ml-app:v1 .
 
 clean:
 	rm -rf build/ dist/ *.egg-info __pycache__ */__pycache__ */*/__pycache__ .pytest_cache
