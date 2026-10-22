@@ -1,11 +1,9 @@
 openapi: 3.1.0
 info:
   title: Kube-ML Tensor Platform API
-  version: 0.1.4
+  version: 0.1.5
   description: >-
-    Read-only operational metadata and bounded NumPy/PyTorch tensor processing.
-    Authentication and authorization are intentionally deferred; do not expose this
-    interface beyond a trusted boundary until they are implemented.
+    Bounded NumPy/PyTorch tensor processing protected by bearer-token authentication.
 servers:
   - url: http://localhost:8000
 paths:
@@ -13,6 +11,7 @@ paths:
     post:
       summary: Process a numeric vector
       operationId: predictVector
+      security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
@@ -30,6 +29,7 @@ paths:
     get:
       summary: List runnable examples
       operationId: listExamples
+      security: [{ bearerAuth: [] }]
       responses:
         '200':
           description: Example catalog
@@ -39,6 +39,7 @@ paths:
     get:
       summary: Get a named example payload
       operationId: getExample
+      security: [{ bearerAuth: [] }]
       parameters:
         - { name: name, in: path, required: true, schema: { type: string } }
       responses:
@@ -49,8 +50,13 @@ paths:
   /readyz:
     get: { summary: Readiness probe, operationId: readiness, responses: { '200': { description: Ready } } }
   /metrics:
-    get: { summary: Prometheus metrics, operationId: metrics, responses: { '200': { description: Prometheus exposition } } }
+    get: { summary: Prometheus metrics, operationId: metrics, security: [{ bearerAuth: [] }], responses: { '200': { description: Prometheus exposition } } }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque token
   schemas:
     VectorRequest:
       type: object
