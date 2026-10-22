@@ -23,6 +23,8 @@ spec:
         env:
         - name: APP_VERSION
           value: {{ .Values.appVersion | quote }}
+        - name: DJANGO_ALLOWED_HOSTS
+          value: "*"
         - name: DJANGO_DEBUG
           value: "false"
         resources:

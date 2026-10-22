@@ -97,6 +97,9 @@ spec:
       - name: kube-ml-app
         image: kube-ml-app:v1
         imagePullPolicy: IfNotPresent
+        env:
+        - name: DJANGO_ALLOWED_HOSTS
+          value: "*"
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
