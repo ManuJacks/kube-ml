@@ -368,6 +368,37 @@ The GHCR package must be readable by the target cluster. For a private package, 
 `imagePullSecret` through the cluster's secret-management system; do not commit registry credentials.
 The Flux controllers must already be installed and authorized to reconcile the repository.
 
+### After pushing a change
+
+For local development, pull the latest checkout and restart the development server; no image wait
+is required:
+
+```bash
+git pull origin development
+make run-dev
+```
+
+For a Minikube/Flux deployment, wait for the Actions workflow to complete, then verify promotion
+and reconciliation:
+
+```bash
+gh run list --workflow ci.yml --limit 1
+flux get kustomizations
+kubectl -n ml-workloads rollout status deployment/kube-ml-platform
+kubectl -n ml-workloads get pods -o wide
+```
+
+The running cluster will update only when all of these are true: the image was published to GHCR,
+the GitOps manifest was promoted to the new commit tag, Flux is healthy, and the cluster can pull
+that image. If the GHCR package is private, configure registry pull credentials before expecting a
+successful rollout. You can confirm the deployed version with:
+
+```bash
+curl http://<service-or-gateway>/healthz
+```
+
+The response includes the application version, while the GUI displays it as `v<version>`.
+
 ---
 
 ## 6. Repository Structure
