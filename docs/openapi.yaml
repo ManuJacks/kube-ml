@@ -4,6 +4,8 @@ info:
   version: 0.1.5
   description: >-
     Bounded NumPy/PyTorch tensor processing protected by bearer-token authentication.
+    The example catalog contains 20 deterministic, read-only NumPy and PyTorch examples,
+    including basic-vector and feature-vector.
 servers:
   - url: http://localhost:8000
 paths:
