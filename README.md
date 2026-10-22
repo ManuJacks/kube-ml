@@ -12,6 +12,10 @@ Zero-copy tensor bridge · Istio Ambient mTLS · Flux GitOps · PSS Restricted �
 
 </div>
 
+![kube-ml GUI showing the NumPy and PyTorch example interface](docs/assets/kube-ml-gui.png)
+
+_The interactive GUI provides runnable, bounded examples and reports the zero-copy tensor result._
+
 ---
 
 ## Why this exists
