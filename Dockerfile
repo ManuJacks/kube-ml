@@ -33,6 +33,10 @@ COPY mcp/ ./mcp/
 # Install the application package
 RUN pip install --no-cache-dir -e .
 
+# Packaging tools are build-time dependencies only. Remove them from the runtime image so
+# their vendored metadata cannot become an unnecessary attack surface or scan finding.
+RUN pip uninstall -y pip setuptools wheel jaraco.context msgpack urllib3
+
 USER app
 
 EXPOSE 8000
