@@ -8,6 +8,9 @@ Production-grade, enterprise-tier AI platform reference architecture integrating
 - **CPU Throttling**: Hard limit via `torch.set_num_threads(2)` to prevent CPU thrashing in containerized/pod environments.
 - **OOM Cascading Shield**: Strict payload size ceiling (`MAX_ELEMENTS = 1,000,000`) and 25MB body buffer limits.
 - **Model Context Protocol (MCP)** server integration.
+- **Istio Ambient Mesh**: Zero-sidecar, high-performance mTLS service mesh and HTTPS edge gateway termination.
+- **Flux CD GitOps**: Automated continuous reconciliation with branch synchronization and prune management.
+- **Enterprise Hardening**: Zero-trust network segmentation, least-privilege RBAC, and Kubernetes Pod Security Standards (PSS Restricted).
 - **Minikube / Kubernetes** deployment with HPA scaling and Prometheus observability.
 
 ---
@@ -61,7 +64,7 @@ python manage.py runserver 0.0.0.0:8000
 
 ## 2. Deploying to Minikube
 
-Per the project [blueprint.md](blueprint.md), the Kubernetes architecture uses standard manifests structured under `clusters/minikube/apps/`.
+The Kubernetes architecture uses standard declarative manifests structured under `clusters/minikube/apps/`.
 
 ### Prerequisites
 - `minikube` installed and running (`minikube status`)
@@ -281,11 +284,38 @@ The repository is configured for automated GitOps continuous reconciliation via 
 
 ---
 
-## 5. Repository Structure
+---
+
+## 5. Enterprise Cloud Hardening & Security Compliance
+
+To bridge the gap between local development defaults and enterprise-grade multi-tenant compliance (AWS EKS, GCP GKE, Azure AKS), the platform provides hardened production controls specified in [`clusters/minikube/apps/hardened-manifest.yaml`](clusters/minikube/apps/hardened-manifest.yaml).
+
+### 5.1 Zero-Trust Network Policies (Calico / Cilium)
+- **Default-Deny Ingress & Egress**: Blocks all incoming and outgoing traffic by default across the namespace (`ml-workloads`).
+- **Gateway Ingress Filtering**: Restricts ingress so the application pod exclusively accepts traffic originating from the Istio ztunnel / ingress gateway proxies in the `istio-system` namespace on port 8000. Direct pod-to-pod attempts bypassing the mesh are rejected.
+- **Egress Perimeter Isolation**: Explicitly whitelists outbound traffic to CoreDNS (`kube-dns:53`) and configured cloud storage / database endpoints, blocking data exfiltration channels.
+
+### 5.2 Least-Privilege Identity & Scoped RBAC
+- **Dedicated Service Account**: Replaces the default service account with a dedicated `kube-ml-sa` that disables token automounting (`automountServiceAccountToken: false`).
+- **Cloud IAM Mapping (IRSA / Workload Identity)**: Pre-configured annotations allow mapping cloud IAM permissions (AWS IAM Roles for Service Accounts or GCP Workload Identity) directly to the Kubernetes Service Account, removing the need for static credentials or committed secrets.
+- **Localized Namespace RBAC**: Restricts in-cluster access via namespace-scoped `Role` and `RoleBinding` objects, prohibiting cluster-wide permissions.
+
+### 5.3 Pod Security Standards (PSS Restricted) & Container Hardening
+- **Namespace-Level PSS Restricted**: Enforces `pod-security.kubernetes.io/enforce: restricted`.
+- **Read-Only Root Filesystem**: `readOnlyRootFilesystem: true` prevents unauthorized tampering or malicious script execution on the container disk. Temporary and scratch files use an in-memory ephemeral `emptyDir` mounted at `/tmp`.
+- **Dropped Linux Capabilities**: Drops all default capabilities (`drop: ["ALL"]`) and prevents privilege escalation (`allowPrivilegeEscalation: false`).
+- **Non-Root Execution & Seccomp**: Enforces UID/GID `10001` (`runAsNonRoot: true`) combined with standard kernel filter profiles (`seccompProfile.type: RuntimeDefault`).
+
+### 5.4 External Secret Management & Supply Chain Governance
+- **External Secrets Operator (ESO)**: Decouples credentials from GitOps manifests, synchronizing secrets on-demand from HashiCorp Vault, AWS Secrets Manager, or GCP Secret Manager.
+- **Supply Chain Attestation**: Integrates with Cosign (Sigstore) image signing and Trivy/Syft SBOM generation in the CI/CD pipeline, enforced via admission controllers (Kyverno / OPA Gatekeeper).
+
+---
+
+## 6. Repository Structure
 ```text
 .
 ├── .github/workflows/ci.yml         # GitHub Actions CI pipeline (Unit tests + Docker)
-├── blueprint.md                     # Architectural specification
 ├── pyproject.toml                   # Python build metadata & entry points
 ├── Makefile                         # Automation targets
 ├── Dockerfile                       # Multi-stage/lean container build
@@ -304,23 +334,13 @@ The repository is configured for automated GitOps continuous reconciliation via 
 ├── mcp/                             # Model Context Protocol server
 │   └── server.py
 └── clusters/minikube/               # GitOps & Kubernetes manifests
-    ├── apps/                        # Application Kustomization (Deployment, Service, HPA)
+    ├── apps/                        # Application Kustomization & manifests
     │   ├── kustomization.yaml
     │   ├── deployment.yaml
     │   ├── service.yaml
-    │   └── hpa.yaml
+    │   ├── hpa.yaml
+    │   └── hardened-manifest.yaml   # PSS Restricted, NetworkPolicies, & SA
     └── flux-system/                 # Flux GitOps source & sync manifests
         ├── kustomization.yaml
         └── gotk-sync.yaml
-```
-│   ├── views.py                     # Zero-copy tensor bridge & endpoints
-│   ├── urls.py                      # Core route declarations
-│   ├── tests.py                     # Unit & integration test suite
-│   └── templates/core/              # Interactive HTML GUI
-│       └── tensor_gui.html
-├── mcp/                             # Model Context Protocol server
-│   └── server.py
-└── clusters/minikube/               # Kubernetes & monitoring manifests
-    ├── apps/                        # Deployment, Service, HPA
-    └── monitoring/                  # Prometheus rules & Alertmanager
 ```
