@@ -11,11 +11,11 @@ auth:
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: kube-ml-app
+  repository: ghcr.io/manujacks/kube-ml
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: v1
+  tag: 50ea9aba5d3ca286578c235f18e3466971ba66a8
 
 appVersion: "0.1.0"
 
