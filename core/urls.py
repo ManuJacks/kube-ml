@@ -1,5 +1,14 @@
 from django.urls import path
-from core.views import tensor_gui_view, predict_view, health_view, ready_view, metrics_view, examples_view, example_view
+
+from core.views import (
+    example_view,
+    examples_view,
+    health_view,
+    metrics_view,
+    predict_view,
+    ready_view,
+    tensor_gui_view,
+)
 
 urlpatterns = [
     path('', tensor_gui_view, name='tensor_gui'),

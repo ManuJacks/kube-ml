@@ -1,15 +1,17 @@
 import json
 import logging
+
 import numpy as np
 import torch
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
-from django.core.exceptions import RequestDataTooBig
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
-from django.shortcuts import render
 from django.conf import settings
+from django.core.exceptions import RequestDataTooBig
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed, JsonResponse
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from .examples import EXAMPLES, example_catalog
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+
 from .auth import require_api_token
+from .examples import EXAMPLES, example_catalog
 
 logger = logging.getLogger(__name__)
 

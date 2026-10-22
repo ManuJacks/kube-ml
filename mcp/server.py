@@ -1,7 +1,7 @@
 """Read-only MCP stdio server for deterministic platform examples."""
+import hmac
 import json
 import os
-import hmac
 import sys
 
 import numpy as np

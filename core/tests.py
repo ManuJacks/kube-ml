@@ -1,8 +1,11 @@
 import json
+
 import numpy as np
 import torch
-from django.test import SimpleTestCase, Client, override_settings
+from django.test import Client, SimpleTestCase, override_settings
+
 from core.views import MAX_ELEMENTS
+
 
 @override_settings(KUBE_ML_API_TOKEN="test-token")
 class TensorBridgeTests(SimpleTestCase):
