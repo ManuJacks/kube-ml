@@ -65,6 +65,10 @@ python manage.py runserver 0.0.0.0:8000
   - `GET /healthz` — liveness check.
   - `GET /readyz` — readiness check.
   - `GET /metrics` — Prometheus exposition format.
+- **Example API**:
+  - `GET /api/v1/examples` — list deterministic examples and limits.
+  - `GET /api/v1/examples/basic-vector` — retrieve a safe example payload.
+  - The MCP stdio command `numpy-mcp-server` exposes the same read-only examples through `tools/list` and `tools/call`.
 
 For a production-like local run, build the image and use its Gunicorn entrypoint. The Django
 development server command above is intended only for local iteration.

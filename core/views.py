@@ -8,6 +8,7 @@ from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, Http
 from django.shortcuts import render
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from .examples import EXAMPLES, example_catalog
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,21 @@ def ready_view(request):
 
 def metrics_view(request):
     return HttpResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)
+
+
+def examples_view(request):
+    if request.method != "GET":
+        return HttpResponseNotAllowed(["GET"])
+    return JsonResponse(example_catalog(settings.APP_VERSION))
+
+
+def example_view(request, name):
+    if request.method != "GET":
+        return HttpResponseNotAllowed(["GET"])
+    example = EXAMPLES.get(name)
+    if example is None:
+        return JsonResponse({"error": "Unknown example"}, status=404)
+    return JsonResponse({"name": name, **example})
 
 
 @csrf_exempt

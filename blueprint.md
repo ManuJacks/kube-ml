@@ -56,11 +56,11 @@ cloud-native-numpy-platform/
 
     Strict payload size validation (MAX_ELEMENTS = 1000000) to prevent out-of-memory cascades.
 
-4. Debian Packaging & Systemd Daemons (debian/ & systemd/)
+4. Future Delivery Targets: Debian Packaging & Systemd Daemons (debian/ & systemd/)
 
     Python Module (pyproject.toml): Standardized build metadata and console script entry points (numpy-mcp-server = mcp.server:main).
 
-    Debian Package (debian/control): Complete dpkg-buildpackage configuration with automatic dependency tracking (python3-torch, python3-numpy).
+    Debian packaging is intentionally deferred until authentication/authorization and the read-only platform interfaces are complete. The preferred package target is host-side health/metrics/MCP tooling; the Django/ML service remains container-native.
 
     Systemd Service (numpy-mcp.service): Unprivileged execution (User=sre-agent), automatic restarts (Restart=on-failure), watchdog health checks (WatchdogSec=30s), and system hardening (ProtectSystem=full).
 
@@ -87,6 +87,16 @@ cloud-native-numpy-platform/
 
 ### 6.0 Authentication roadmap
 Authentication is intentionally not implemented in the current reference service. Before exposing the API beyond a trusted internal boundary, add an explicit authentication and authorization layer (for example, OIDC/JWT validation or an API gateway policy), define scopes/tenant boundaries, and add tests for unauthenticated and unauthorized requests. This is a required follow-up control, not an assumption of the current deployment.
+
+### 6.0.1 Ordered next steps
+1. Implement and verify authentication and authorization for HTTP and MCP interfaces.
+2. Add tenant/scoped access, rate limits, audit events, and negative security tests.
+3. Run integration and failure-path tests in a real or ephemeral Kubernetes cluster.
+4. Verify signed images and SBOMs through admission policy.
+5. Complete operational drills, SLO evidence, rollback, and recovery testing.
+6. Package the authenticated, read-only host-side health/metrics/MCP tooling as a signed Debian artifact.
+
+The current implementation includes deterministic, read-only examples through the GUI, `/api/v1/examples`, and the MCP stdio server. These interfaces deliberately do not mutate Kubernetes, execute arbitrary commands, access secrets, or expose tenant data.
 
 To transition from the local GitOps/Minikube reference implementation to a hardened, enterprise-grade production cloud deployment (EKS, GKE, or AKS), the platform enforces strict multi-tenant zero-trust isolation, least-privilege identity, runtime boundary enforcement, and supply-chain controls.
 

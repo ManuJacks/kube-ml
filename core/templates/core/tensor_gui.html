@@ -89,6 +89,13 @@
             <input type="text" id="arrayInput" value="10.0, 20.0, 30.0, 40.0" />
             <button onclick="calculateMatrix()">Execute Tensor Bridge</button>
         </div>
+        <div class="examples">
+            <strong>Runnable examples</strong>
+            <p><small>Basic vector — computes the 3-4-5 L2 norm and doubles each value.</small>
+                <button type="button" onclick="runExample('basic-vector')">Run basic vector</button></p>
+            <p><small>Feature vector — processes four continuous features through the bridge.</small>
+                <button type="button" onclick="runExample('feature-vector')">Run feature vector</button></p>
+        </div>
         <div id="result"></div>
     </div>
 
@@ -132,6 +139,13 @@
                 resultDiv.style.borderLeftColor = '#dc3545';
                 resultDiv.innerHTML = `<span style="color:#dc3545;"><strong>Error:</strong> ${err.message}</span>`;
             }
+        }
+
+        async function runExample(name) {
+            const response = await fetch(`/api/v1/examples/${name}`);
+            const example = await response.json();
+            document.getElementById('arrayInput').value = example.payload.data.join(', ');
+            await calculateMatrix();
         }
     </script>
 </body>

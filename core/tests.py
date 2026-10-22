@@ -12,7 +12,7 @@ class TensorBridgeTests(SimpleTestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'NumPy & PyTorch Zero-Copy Platform')
-        self.assertContains(response, 'v0.1.0')
+        self.assertContains(response, 'v0.1.1')
 
     def test_method_not_allowed_for_get_predict(self):
         response = self.client.get('/predict')
@@ -22,6 +22,13 @@ class TensorBridgeTests(SimpleTestCase):
         self.assertEqual(self.client.get('/healthz').status_code, 200)
         self.assertEqual(self.client.get('/readyz').json()['status'], 'ready')
         self.assertIn('kube_ml_predictions_total', self.client.get('/metrics').content.decode())
+
+    def test_examples_api_is_read_only_and_deterministic(self):
+        response = self.client.get('/api/v1/examples')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('basic-vector', response.json()['examples'])
+        example = self.client.get('/api/v1/examples/basic-vector')
+        self.assertEqual(example.json()['payload'], {'data': [3.0, 4.0]})
 
     def test_non_finite_values_are_rejected(self):
         response = self.client.post('/predict', data=json.dumps({'data': [1.0, float('nan')]}), content_type='application/json')
