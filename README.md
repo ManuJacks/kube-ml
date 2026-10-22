@@ -2,7 +2,7 @@
 
 [![CI/CD Pipeline](https://github.com/ManuJacks/kube-ml/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/ManuJacks/kube-ml/actions/workflows/ci.yml)
 
-Production-grade, enterprise-tier AI platform reference architecture integrating:
+Cloud-native AI platform reference implementation integrating:
 - **Django** web application framework.
 - **Zero-Copy Tensor Bridge** leveraging `torch.from_numpy()` with C-contiguous `float32` arrays.
 - **CPU Throttling**: Hard limit via `torch.set_num_threads(2)` to prevent CPU thrashing in containerized/pod environments.
@@ -11,7 +11,8 @@ Production-grade, enterprise-tier AI platform reference architecture integrating
 - **Istio Ambient Mesh**: Zero-sidecar, high-performance mTLS service mesh and HTTPS edge gateway termination.
 - **Flux CD GitOps**: Automated continuous reconciliation with branch synchronization and prune management.
 - **Enterprise Hardening**: Zero-trust network segmentation, least-privilege RBAC, and Kubernetes Pod Security Standards (PSS Restricted).
-- **Minikube / Kubernetes** deployment with HPA scaling and Prometheus observability.
+- **Minikube / Kubernetes** deployment with HPA scaling, health probes, and Prometheus metrics.
+- **Delivery safeguards**: automated tests, Ruff linting, Helm/Kustomize rendering, dependency auditing, and Trivy image scanning in CI.
 
 ---
 
@@ -46,6 +47,7 @@ Verifies:
 - Payload size boundaries (`MAX_ELEMENTS = 1,000,000` and `DATA_UPLOAD_MAX_MEMORY_SIZE`).
 - Error handling (empty payloads, non-list structures, invalid JSON).
 - HTML web portal rendering.
+- Liveness, readiness, metrics, and non-finite-number rejection.
 
 ### Run Local Development Server
 ```bash
@@ -59,6 +61,13 @@ python manage.py runserver 0.0.0.0:8000
     -H "Content-Type: application/json" \
     -d '{"data": [10.0, 20.0, 30.0, 40.0]}'
   ```
+- **Operational endpoints**:
+  - `GET /healthz` — liveness check.
+  - `GET /readyz` — readiness check.
+  - `GET /metrics` — Prometheus exposition format.
+
+For a production-like local run, build the image and use its Gunicorn entrypoint. The Django
+development server command above is intended only for local iteration.
 
 ---
 
@@ -86,8 +95,18 @@ With Minikube's Docker environment active, build the container image:
 docker build -t kube-ml-app:v1 .
 ```
 
-### Step 3: Create the Kubernetes Manifests (`clusters/minikube/apps/`)
-Create the target deployment and service files:
+### Step 3: Render and apply the Kubernetes manifests (`clusters/minikube/apps/`)
+The checked-in Kustomization is the authoritative deployment path. It includes the hardened
+deployment, namespace security labels, default-deny network policy, service, HPA, and Gateway API
+resources:
+
+```bash
+kubectl kustomize clusters/minikube/apps
+kubectl apply -k clusters/minikube/apps
+```
+
+The standalone manifest examples below are retained as reference only; use the Kustomization above
+for deployment.
 
 #### `clusters/minikube/apps/deployment.yaml`
 ```yaml
@@ -254,7 +273,7 @@ Then open `https://localhost:8443/` in your browser.
 The repository is configured for automated GitOps continuous reconciliation via [Flux CD](https://fluxcd.io).
 
 ### Structure
-- `clusters/minikube/apps/kustomization.yaml`: Kustomizes the application manifests (`deployment.yaml`, `service.yaml`, `hpa.yaml`).
+- `clusters/minikube/apps/kustomization.yaml`: Kustomizes the hardened deployment, service, HPA, Gateway API, and network/security manifests.
 - `clusters/minikube/flux-system/gotk-sync.yaml`:
   - `GitRepository`: Watches `https://github.com/ManuJacks/kube-ml.git` on the `development` branch with a 1-minute poll interval.
   - `Kustomization`: Reconciles `./clusters/minikube/apps` into the `ml-workloads` namespace with automated pruning.
@@ -308,7 +327,12 @@ To bridge the gap between local development defaults and enterprise-grade multi-
 
 ### 5.4 External Secret Management & Supply Chain Governance
 - **External Secrets Operator (ESO)**: Decouples credentials from GitOps manifests, synchronizing secrets on-demand from HashiCorp Vault, AWS Secrets Manager, or GCP Secret Manager.
-- **Supply Chain Attestation**: Integrates with Cosign (Sigstore) image signing and Trivy/Syft SBOM generation in the CI/CD pipeline, enforced via admission controllers (Kyverno / OPA Gatekeeper).
+- **Supply Chain Checks**: CI runs `pip-audit` and Trivy HIGH/CRITICAL vulnerability scanning. Image signing, SBOM publication, and admission enforcement with Cosign/Syft plus Kyverno or OPA Gatekeeper remain deployment-specific follow-up controls.
+
+### 5.5 Authentication roadmap
+Authentication and authorization are intentionally not implemented yet. Before exposing `/predict`
+outside a trusted internal boundary, add OIDC/JWT or gateway-enforced authentication, authorization
+scopes, tenant boundaries, rate limiting, and tests for unauthenticated/unauthorized requests.
 
 ---
 
