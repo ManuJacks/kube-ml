@@ -70,12 +70,20 @@
             font-size: 12px;
             font-weight: bold;
         }
+        .version-badge {
+            display: inline-block;
+            margin-top: -4px;
+            color: #5c6770;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>NumPy & PyTorch Zero-Copy Platform</h2>
-        <p><small>Version {{ app_version }}</small></p>
+        <div class="version-badge" aria-label="Application version">v{{ app_version }}</div>
         <p>Enter continuous features as a vector (comma-separated float values):</p>
         <div class="input-group">
             <input type="text" id="arrayInput" value="10.0, 20.0, 30.0, 40.0" />
