@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   test:
@@ -117,6 +118,25 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+
+      - name: Generate image SBOM
+        if: github.event_name == 'push'
+        uses: anchore/sbom-action@v0
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+          artifact-name: kube-ml-${{ github.sha }}.spdx.json
+          output-file: kube-ml-${{ github.sha }}.spdx.json
+
+      - name: Install Cosign
+        if: github.event_name == 'push'
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Sign published image
+        if: github.event_name == 'push'
+        env:
+          COSIGN_EXPERIMENTAL: '1'
+          IMAGE: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+        run: cosign sign --yes "${IMAGE}"
 
       - name: Scan pull-request image for vulnerabilities
         if: github.event_name == 'pull_request'

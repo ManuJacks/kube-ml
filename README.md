@@ -360,6 +360,10 @@ On pushes to `development`, GitHub Actions now:
 4. Commits that promotion back to `development`.
 5. Lets Flux reconcile the changed manifests into the cluster.
 
+The push pipeline also produces an SPDX SBOM and signs the published image with keyless Cosign
+using GitHub OIDC. A cluster admission policy must verify that signature before this becomes an
+enforced supply-chain boundary.
+
 The GHCR package must be readable by the target cluster. For a private package, configure an
 `imagePullSecret` through the cluster's secret-management system; do not commit registry credentials.
 The Flux controllers must already be installed and authorized to reconcile the repository.
