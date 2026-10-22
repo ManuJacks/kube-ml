@@ -404,6 +404,65 @@ curl http://<service-or-gateway>/healthz
 
 The response includes the application version, while the GUI displays it as `v<version>`.
 
+### Authentication
+
+Protected API endpoints (`/predict`, `/metrics`, and `/api/v1/examples`) require an
+`Authorization: Bearer <token>` header. `/healthz` and `/readyz` remain unauthenticated
+for Kubernetes probes. The GUI accepts the token in its password field and keeps it
+only in the current browser tab.
+
+For local development, create `.env.local` (ignored by Git):
+
+```bash
+KUBE_ML_API_TOKEN=replace-with-a-long-random-token
+```
+
+Then run `make run-dev`. For Kubernetes, create the expected Secret out of band:
+
+```bash
+kubectl -n ml-workloads create secret generic kube-ml-api-token \
+  --from-literal=token="$KUBE_ML_API_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
+```
+
+The MCP stdio server requires the same `KUBE_ML_API_TOKEN` environment variable and a
+`token` argument on each `tools/call`. Never commit tokens, `.env.local`, or rendered
+Kubernetes Secret manifests.
+
+#### Using and rotating credentials
+
+Generate a strong token rather than using a short human-readable password:
+
+```bash
+export KUBE_ML_API_TOKEN="$(openssl rand -hex 32)"
+printf 'KUBE_ML_API_TOKEN=%s\n' "$KUBE_ML_API_TOKEN" > .env.local
+```
+
+Call a protected endpoint with the token:
+
+```bash
+curl -H "Authorization: Bearer $KUBE_ML_API_TOKEN" \
+  http://localhost:8000/api/v1/examples
+curl -X POST -H "Authorization: Bearer $KUBE_ML_API_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"data":[3,4]}' http://localhost:8000/predict
+```
+
+To rotate a Kubernetes credential, create a new token, update the Secret, and restart the
+deployment. Existing clients will receive `401` responses after rotation and must be updated.
+Do not place the token in a Deployment manifest, Helm values file, shell history, issue, or log:
+
+```bash
+export NEW_KUBE_ML_API_TOKEN="$(openssl rand -hex 32)"
+kubectl -n ml-workloads create secret generic kube-ml-api-token \
+  --from-literal=token="$NEW_KUBE_ML_API_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n ml-workloads rollout restart deployment/kube-ml-platform
+kubectl -n ml-workloads rollout status deployment/kube-ml-platform
+```
+
+If protected calls return `401`, verify the header spelling, that the application has the
+current Secret, and that the client is using the same token as the running deployment. Keep
+`/healthz` and `/readyz` unauthenticated so Kubernetes probes continue to work.
+
 ---
 
 ## 6. Repository Structure

@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from .examples import EXAMPLES, example_catalog
+from .auth import require_api_token
 
 logger = logging.getLogger(__name__)
 
@@ -36,16 +37,19 @@ def ready_view(request):
     return JsonResponse({"status": "ready", "version": settings.APP_VERSION})
 
 
+@require_api_token
 def metrics_view(request):
     return HttpResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)
 
 
+@require_api_token
 def examples_view(request):
     if request.method != "GET":
         return HttpResponseNotAllowed(["GET"])
     return JsonResponse(example_catalog(settings.APP_VERSION))
 
 
+@require_api_token
 def example_view(request, name):
     if request.method != "GET":
         return HttpResponseNotAllowed(["GET"])
@@ -56,6 +60,7 @@ def example_view(request, name):
 
 
 @csrf_exempt
+@require_api_token
 @PREDICTION_LATENCY.time()
 def predict_view(request):
     """

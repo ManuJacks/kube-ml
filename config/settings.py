@@ -3,8 +3,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-APP_VERSION = os.environ.get('APP_VERSION', '0.1.4')
+APP_VERSION = os.environ.get('APP_VERSION', '0.1.5')
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'insecure-development-key')
+KUBE_ML_API_TOKEN = os.environ.get('KUBE_ML_API_TOKEN', '')
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('1', 'true', 'yes')
 

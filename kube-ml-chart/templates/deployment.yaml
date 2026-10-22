@@ -21,6 +21,11 @@ spec:
         - containerPort: 8000
           name: http
         env:
+        - name: KUBE_ML_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.auth.existingSecret | default "kube-ml-api-token" }}
+              key: token
         - name: APP_VERSION
           value: {{ .Values.appVersion | quote }}
         - name: DJANGO_ALLOWED_HOSTS

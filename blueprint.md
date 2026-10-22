@@ -133,6 +133,7 @@ To transition from the local GitOps/Minikube reference implementation to a harde
 ### 6.7 Observability, SLOs, and incident response
 - **SLIs**: Track availability, request latency percentiles, error rate, payload rejection rate, saturation, and OOM events.
 - **SLOs**: Establish versioned availability and latency objectives with an error-budget policy before production launch.
+- **Authentication (next security increment)**: Implemented bearer-token protection for the API and token-gated MCP calls. Production follow-up: replace the shared local token with an identity provider, short-lived scoped credentials, rotation, audit logging, and secret-manager integration.
 - **Telemetry**: Correlate structured logs, Prometheus metrics, distributed traces, and deployment revisions without recording payload contents or credentials.
 - **Alerting**: Alert on SLO burn rate, readiness failures, elevated 5xx responses, resource saturation, and certificate expiry.
 - **Operations**: Maintain runbooks, ownership, escalation paths, post-incident reviews, and tested rollback procedures.

@@ -1,18 +1,23 @@
 import json
 import numpy as np
 import torch
-from django.test import SimpleTestCase, Client
+from django.test import SimpleTestCase, Client, override_settings
 from core.views import MAX_ELEMENTS
 
+@override_settings(KUBE_ML_API_TOKEN="test-token")
 class TensorBridgeTests(SimpleTestCase):
     def setUp(self):
-        self.client = Client()
+        self.client = Client(HTTP_AUTHORIZATION="Bearer test-token")
+
+    def test_protected_endpoint_requires_bearer_token(self):
+        response = Client().get('/api/v1/examples')
+        self.assertEqual(response.status_code, 401)
 
     def test_gui_renders_successfully(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'NumPy & PyTorch Zero-Copy Platform')
-        self.assertContains(response, 'v0.1.4')
+        self.assertContains(response, 'v0.1.5')
 
     def test_method_not_allowed_for_get_predict(self):
         response = self.client.get('/predict')

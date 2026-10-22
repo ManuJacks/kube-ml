@@ -1,17 +1,20 @@
 """Read-only MCP stdio server for deterministic platform examples."""
 import json
+import os
+import hmac
 import sys
 
 import numpy as np
 import torch
 
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 TOOLS = [
     {"name": "list_examples", "description": "List deterministic tensor examples.", "inputSchema": {"type": "object"}},
     {"name": "run_example", "description": "Execute one named NumPy or PyTorch example.", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}},
     {"name": "run_tensor_example", "description": "Run a bounded tensor example.", "inputSchema": {"type": "object", "properties": {"data": {"type": "array", "items": {"type": "number"}}}, "required": ["data"]}},
     {"name": "get_platform_metadata", "description": "Get version and safety limits.", "inputSchema": {"type": "object"}},
 ]
+API_TOKEN = os.environ.get("KUBE_ML_API_TOKEN", "")
 
 
 def _result(value):
@@ -19,6 +22,9 @@ def _result(value):
 
 
 def call_tool(name, arguments):
+    supplied_token = arguments.get("token", "") if isinstance(arguments, dict) else ""
+    if not API_TOKEN or not hmac.compare_digest(supplied_token, API_TOKEN):
+        raise PermissionError("Valid token argument required")
     examples = {"numpy-stats": [1.0, 2.0, 3.0, 4.0], "numpy-broadcast": [2.0, 4.0, 6.0], "numpy-matrix": [1.0, 2.0, 3.0, 4.0], "numpy-negative": [-3.0, -1.0, 0.0, 2.0], "numpy-batch": [0.5, 1.5, 2.5, 3.5, 4.5, 5.5], "numpy-sparse-like": [0.0, 0.0, 7.0, 0.0, 0.0, 2.0], "numpy-timeseries": [12.1, 12.4, 12.2, 12.8, 13.0, 12.7], "numpy-pixels": [0.0, 0.25, 0.5, 0.75, 1.0, 0.5], "numpy-normalization": [0.12, 0.38, 0.64, 0.91], "torch-reduction": [3.0, 4.0], "torch-elementwise": [5.0, 10.0, 15.0], "torch-features": [10.0, 20.0, 30.0, 40.0], "torch-negative": [-5.0, -2.0, 1.0, 4.0], "torch-batch": [0.25, 0.5, 0.75, 1.0, 1.25, 1.5], "torch-sparse-like": [0.0, 0.0, 8.0, 0.0, 3.0, 0.0], "torch-batched": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0], "torch-logits": [-2.0, -0.5, 0.5, 2.0], "torch-embedding": [0.11, -0.24, 0.53, 0.72, -0.08, 0.31]}
     if name == "list_examples":
         return _result({"version": VERSION, "examples": examples})
@@ -26,7 +32,7 @@ def call_tool(name, arguments):
         example_name = arguments.get("name") if isinstance(arguments, dict) else None
         if example_name not in examples:
             raise ValueError("Unknown example")
-        return call_tool("run_tensor_example", {"data": examples[example_name]})
+        return call_tool("run_tensor_example", {"data": examples[example_name], "token": supplied_token})
     if name == "get_platform_metadata":
         return _result({"version": VERSION, "max_elements": 1_000_000, "threads": torch.get_num_threads(), "read_only": True})
     if name == "run_tensor_example":

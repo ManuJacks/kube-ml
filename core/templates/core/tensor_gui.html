@@ -98,6 +98,9 @@
         <div class="version-badge" aria-label="Application version">v{{ app_version }}</div>
         <p>Enter continuous features as a vector (comma-separated float values):</p>
         <div class="input-group">
+            <input type="password" id="apiToken" placeholder="Paste your KUBE_ML_API_TOKEN" autocomplete="off" />
+        </div>
+        <div class="input-group">
             <input type="text" id="arrayInput" value="10.0, 20.0, 30.0, 40.0" />
             <button onclick="calculateMatrix()">Execute Tensor Bridge</button>
         </div>
@@ -114,6 +117,7 @@
             </ol>
             <p><strong>Example:</strong> <code>[3, 4]</code> has an L2 norm of <code>5</code>; the scaled result is <code>[6, 8]</code>, with <code>zero_copy: true</code>.</p>
             <p><strong>Safety:</strong> values must be finite, arrays cannot be empty, and input is limited to 1,000,000 elements. Examples cannot change Kubernetes or execute shell commands.</p>
+            <p><strong>Authentication:</strong> paste the local Bearer token above. It is held only in this browser tab and sent to protected API calls.</p>
         </div>
         <div class="tabs" role="tablist">
             <button class="tab active" id="numpy-tab" onclick="showTab('numpy')">NumPy examples</button>
@@ -145,6 +149,11 @@
     </div>
 
     <script>
+        function authHeaders() {
+            const token = document.getElementById('apiToken').value.trim();
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
+        }
+
         async function calculateMatrix() {
             const input = document.getElementById('arrayInput').value;
             const dataArray = input.split(',').map(item => parseFloat(item.trim())).filter(val => !isNaN(val));
@@ -160,7 +169,7 @@
             try {
                 const response = await fetch('/predict', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
                     body: JSON.stringify({ data: dataArray })
                 });
 
@@ -187,8 +196,9 @@
         }
 
         async function runExample(name) {
-            const response = await fetch(`/api/v1/examples/${name}`);
+            const response = await fetch(`/api/v1/examples/${name}`, { headers: authHeaders() });
             const example = await response.json();
+            if (!response.ok) throw new Error(example.error || 'Authentication failed');
             document.getElementById('arrayInput').value = example.payload.data.join(', ');
             await calculateMatrix();
         }

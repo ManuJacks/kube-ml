@@ -100,6 +100,11 @@ spec:
         env:
         - name: DJANGO_ALLOWED_HOSTS
           value: "*"
+        - name: KUBE_ML_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: kube-ml-api-token
+              key: token
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
