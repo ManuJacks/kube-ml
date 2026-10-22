@@ -3,7 +3,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-APP_VERSION = os.environ.get('APP_VERSION', '0.1.2')
+APP_VERSION = os.environ.get('APP_VERSION', '0.1.4')
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'insecure-development-key')
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('1', 'true', 'yes')

@@ -69,7 +69,7 @@ python manage.py runserver 0.0.0.0:8000
   - `GET /api/v1/examples` — list deterministic examples and limits.
   - `GET /api/v1/examples/basic-vector` — retrieve a safe example payload.
   - OpenAPI 3.1 contract: [`docs/openapi.yaml`](docs/openapi.yaml).
-  - The MCP stdio command `numpy-mcp-server` exposes the same read-only examples through `tools/list`, `run_example`, and `run_tensor_example`.
+  - The MCP stdio command `numpy-mcp-server` exposes the same eighteen read-only examples through `tools/list`, `run_example`, and `run_tensor_example`.
 
 For a production-like local run, build the image and use its Gunicorn entrypoint. The Django
 development server command above is intended only for local iteration.

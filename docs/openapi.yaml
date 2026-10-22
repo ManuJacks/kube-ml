@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Kube-ML Tensor Platform API
-  version: 0.1.2
+  version: 0.1.4
   description: >-
     Read-only operational metadata and bounded NumPy/PyTorch tensor processing.
     Authentication and authorization are intentionally deferred; do not expose this

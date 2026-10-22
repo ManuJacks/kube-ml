@@ -12,7 +12,7 @@ class TensorBridgeTests(SimpleTestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'NumPy & PyTorch Zero-Copy Platform')
-        self.assertContains(response, 'v0.1.2')
+        self.assertContains(response, 'v0.1.4')
 
     def test_method_not_allowed_for_get_predict(self):
         response = self.client.get('/predict')

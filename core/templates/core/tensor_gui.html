@@ -107,11 +107,23 @@
             <article class="example-card"><h3>Array statistics</h3><p>Shape, L2 norm, and scaling for a contiguous float32 array.</p><button onclick="runExample('numpy-stats')">Run example</button></article>
             <article class="example-card"><h3>Broadcasting</h3><p>Element-wise processing using NumPy-compatible broadcasting semantics.</p><button onclick="runExample('numpy-broadcast')">Run example</button></article>
             <article class="example-card"><h3>Matrix features</h3><p>Flattened matrix-shaped features passed safely through the bridge.</p><button onclick="runExample('numpy-matrix')">Run example</button></article>
+            <article class="example-card"><h3>Signed values</h3><p>Signed values crossing zero with finite numerical validation.</p><button onclick="runExample('numpy-negative')">Run example</button></article>
+            <article class="example-card"><h3>Feature batch</h3><p>A larger bounded batch converted to contiguous float32 values.</p><button onclick="runExample('numpy-batch')">Run example</button></article>
+            <article class="example-card"><h3>Sparse-like vector</h3><p>Mostly zero-valued features with a small active signal.</p><button onclick="runExample('numpy-sparse-like')">Run example</button></article>
+            <article class="example-card"><h3>Time-series window</h3><p>Ordered sensor readings suitable for rolling-window processing.</p><button onclick="runExample('numpy-timeseries')">Run example</button></article>
+            <article class="example-card"><h3>Pixel channels</h3><p>Normalized pixel-like channel values in a bounded vector.</p><button onclick="runExample('numpy-pixels')">Run example</button></article>
+            <article class="example-card"><h3>Normalized features</h3><p>Already-normalized values ready for model input.</p><button onclick="runExample('numpy-normalization')">Run example</button></article>
         </section>
         <section id="torch-examples" class="example-grid" role="tabpanel" hidden>
             <article class="example-card"><h3>Tensor reduction</h3><p>Compute a PyTorch L2 reduction while preserving shared memory.</p><button onclick="runExample('torch-reduction')">Run example</button></article>
             <article class="example-card"><h3>Element-wise tensor</h3><p>Apply a PyTorch scale operation to a bounded tensor.</p><button onclick="runExample('torch-elementwise')">Run example</button></article>
             <article class="example-card"><h3>Feature inference</h3><p>Process continuous features with the configured worker-thread limit.</p><button onclick="runExample('torch-features')">Run example</button></article>
+            <article class="example-card"><h3>Signed tensor</h3><p>Reduce signed tensor values across a zero-crossing feature set.</p><button onclick="runExample('torch-negative')">Run example</button></article>
+            <article class="example-card"><h3>Tensor batch</h3><p>Process six bounded values with the worker-thread constraint.</p><button onclick="runExample('torch-batch')">Run example</button></article>
+            <article class="example-card"><h3>Sparse-like tensor</h3><p>Process a tensor with two active values among zero features.</p><button onclick="runExample('torch-sparse-like')">Run example</button></article>
+            <article class="example-card"><h3>Batched inference</h3><p>Process a small batched-inference style feature window.</p><button onclick="runExample('torch-batched')">Run example</button></article>
+            <article class="example-card"><h3>Logits-like values</h3><p>Process signed scoring values before downstream classification.</p><button onclick="runExample('torch-logits')">Run example</button></article>
+            <article class="example-card"><h3>Embedding vector</h3><p>Process a compact embedding-like vector with shared memory.</p><button onclick="runExample('torch-embedding')">Run example</button></article>
         </section>
         <div id="result"></div>
     </div>
