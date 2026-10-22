@@ -12,6 +12,12 @@ RUN addgroup --system app && adduser --system --ingroup app app
 
 # Install dependencies with CPU-only torch to keep image size lean and builds fast
 RUN pip install --no-cache-dir \
+    --upgrade \
+    'pip>=25.3' \
+    'setuptools>=78.1.1' \
+    'wheel>=0.46.2' \
+    'jaraco.context>=6.1.0' && \
+    pip install --no-cache-dir \
     'django>=4.2' \
     'numpy>=1.24.0' \
     'torch>=2.0.0' \
