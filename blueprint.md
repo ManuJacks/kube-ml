@@ -114,3 +114,34 @@ To transition from the local GitOps/Minikube reference implementation to a harde
 - **Image Signing & Attestation**: Sign container images with Cosign (Sigstore) in CI/CD; enforce policy admission with Kyverno or OPA Gatekeeper to block unsigned images from admission.
 - **SBOM & Vulnerability Gates**: Generate Software Bill of Materials (SBOM) with Syft/Trivy during container build, enforcing automated break-build triggers on high/critical CVE thresholds.
 
+### 6.6 Authentication and authorization
+- **Identity provider integration**: Add OIDC/JWT validation at the gateway or application boundary.
+- **Authorization model**: Define scopes, tenant identity, model permissions, and operator/admin roles.
+- **Abuse controls**: Add per-identity rate limits, request quotas, replay protection, and audit logging.
+- **Verification**: Test missing, expired, malformed, and insufficient-scope credentials; do not treat network location as identity.
+
+### 6.7 Observability, SLOs, and incident response
+- **SLIs**: Track availability, request latency percentiles, error rate, payload rejection rate, saturation, and OOM events.
+- **SLOs**: Establish versioned availability and latency objectives with an error-budget policy before production launch.
+- **Telemetry**: Correlate structured logs, Prometheus metrics, distributed traces, and deployment revisions without recording payload contents or credentials.
+- **Alerting**: Alert on SLO burn rate, readiness failures, elevated 5xx responses, resource saturation, and certificate expiry.
+- **Operations**: Maintain runbooks, ownership, escalation paths, post-incident reviews, and tested rollback procedures.
+
+### 6.8 Real-cluster and policy validation
+- Render and validate Helm/Kustomize output in CI for every change.
+- Run ephemeral-cluster integration tests covering rollout, probes, HPA behavior, Gateway routing, NetworkPolicy behavior, and graceful termination.
+- Enforce PSS Restricted, RBAC, image provenance, and network-policy rules with policy-as-code (Kyverno, OPA Gatekeeper, or equivalent).
+- Exercise failure injection for pod eviction, dependency failure, malformed requests, resource pressure, and partial rollouts.
+
+### 6.9 Disaster recovery and data protection
+- Define RPO/RTO targets and ownership for every stateful dependency.
+- Keep the application stateless; externalize durable state to managed services with encryption and access controls.
+- Automate encrypted backups, retention, restore verification, and cross-zone/region recovery where required.
+- Perform scheduled restore drills and record evidence that the declared RPO/RTO is achievable.
+
+### 6.10 Multi-tenancy and model governance
+- Isolate tenant data, namespaces, quotas, network paths, and cloud identities according to the selected tenancy model.
+- Enforce tenant-aware authorization and prevent cross-tenant identifiers, logs, metrics, caches, and object-storage access.
+- Version models and preprocessing contracts; record provenance, evaluation results, rollback metadata, and approved deployment state.
+- Define model-specific resource budgets, abuse limits, numerical safety checks, and change-approval requirements.
+

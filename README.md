@@ -334,6 +334,22 @@ Authentication and authorization are intentionally not implemented yet. Before e
 outside a trusted internal boundary, add OIDC/JWT or gateway-enforced authentication, authorization
 scopes, tenant boundaries, rate limiting, and tests for unauthenticated/unauthorized requests.
 
+## 6. Future work
+
+The current repository is a hardened reference implementation, not a claim that every production
+control is complete. The next maturity steps are:
+
+- Add OIDC/JWT authentication, scoped authorization, tenant isolation, quotas, and audit trails.
+- Add distributed tracing, SLOs, burn-rate alerts, runbooks, and incident-response ownership.
+- Test rendered workloads in an ephemeral Kubernetes cluster, including policy, rollout, HPA, mesh,
+  and failure-injection scenarios.
+- Add Cosign signing, SBOM publication, provenance attestations, and admission enforcement.
+- Define RPO/RTO targets, encrypted backups, restore drills, and regional recovery procedures.
+- Add multi-tenant model/data isolation, model provenance, evaluation gates, and controlled rollback.
+
+These controls should be completed before describing the service as a fully production-certified,
+internet-facing platform.
+
 ---
 
 ## 6. Repository Structure
