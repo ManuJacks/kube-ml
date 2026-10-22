@@ -17,6 +17,15 @@ class TensorBridgeTests(SimpleTestCase):
         response = self.client.get('/predict')
         self.assertEqual(response.status_code, 405)
 
+    def test_health_readiness_and_metrics_endpoints(self):
+        self.assertEqual(self.client.get('/healthz').status_code, 200)
+        self.assertEqual(self.client.get('/readyz').json()['status'], 'ready')
+        self.assertIn('kube_ml_predictions_total', self.client.get('/metrics').content.decode())
+
+    def test_non_finite_values_are_rejected(self):
+        response = self.client.post('/predict', data=json.dumps({'data': [1.0, float('nan')]}), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
     def test_zero_copy_and_calculations(self):
         payload = {"data": [3.0, 4.0]}
         response = self.client.post(

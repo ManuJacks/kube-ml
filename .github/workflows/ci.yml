@@ -34,6 +34,11 @@ jobs:
         run: |
           python -m compileall -q config core mcp
 
+      - name: Run lint checks
+        run: |
+          pip install ruff
+          ruff check config core mcp
+
       - name: Validate Kubernetes manifests
         run: |
           kubectl kustomize clusters/minikube/apps >/dev/null
@@ -45,6 +50,9 @@ jobs:
 
       - run: helm lint kube-ml-chart
       - run: helm template kube-ml kube-ml-chart >/dev/null
+
+      - name: Dependency vulnerability audit
+        run: pip install pip-audit && pip-audit
 
   docker-build:
     name: Validate Docker Build
@@ -62,4 +70,14 @@ jobs:
         with:
           context: .
           push: false
+          load: true
           tags: kube-ml-platform:latest
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: kube-ml-platform:latest
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH

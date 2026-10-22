@@ -39,10 +39,10 @@ spec:
             drop: ["ALL"]
         readinessProbe:
           httpGet:
-            path: /
+            path: /readyz
             port: http
         livenessProbe:
           httpGet:
-            path: /
+            path: /healthz
             port: http
 

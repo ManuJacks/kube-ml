@@ -118,13 +118,13 @@ spec:
           mountPath: /tmp
         readinessProbe:
           httpGet:
-            path: /
+            path: /readyz
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /
+            path: /healthz
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 15

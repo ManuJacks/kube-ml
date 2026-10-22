@@ -2,8 +2,9 @@ import json
 import logging
 import numpy as np
 import torch
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from django.core.exceptions import RequestDataTooBig
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseNotAllowed
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import render
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -15,6 +16,8 @@ torch.set_num_threads(2)
 
 # Strict payload size validation to prevent out-of-memory cascades
 MAX_ELEMENTS = 1_000_000
+PREDICTIONS = Counter("kube_ml_predictions_total", "Prediction requests", ["status"])
+PREDICTION_LATENCY = Histogram("kube_ml_prediction_duration_seconds", "Prediction latency")
 
 
 def tensor_gui_view(request):
@@ -22,7 +25,22 @@ def tensor_gui_view(request):
     return render(request, "core/tensor_gui.html", {"app_version": settings.APP_VERSION})
 
 
+def health_view(request):
+    """Liveness endpoint: the process is alive if Django can answer."""
+    return JsonResponse({"status": "ok", "version": settings.APP_VERSION})
+
+
+def ready_view(request):
+    """Readiness endpoint for load balancers and Kubernetes probes."""
+    return JsonResponse({"status": "ready", "version": settings.APP_VERSION})
+
+
+def metrics_view(request):
+    return HttpResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)
+
+
 @csrf_exempt
+@PREDICTION_LATENCY.time()
 def predict_view(request):
     """
     Zero-copy tensor bridge endpoint:
@@ -44,7 +62,7 @@ def predict_view(request):
     except (json.JSONDecodeError, UnicodeDecodeError):
         return HttpResponseBadRequest(json.dumps({"error": "Invalid JSON payload"}), content_type="application/json")
 
-    raw_data = payload.get("data")
+    raw_data = payload.get("data") if isinstance(payload, dict) else None
     if raw_data is None or not isinstance(raw_data, list):
         return HttpResponseBadRequest(
             json.dumps({"error": "Field 'data' must be a list of numbers"}),
@@ -64,6 +82,10 @@ def predict_view(request):
             content_type="application/json"
         )
 
+    if any(not isinstance(value, (int, float)) or not np.isfinite(value) for value in raw_data):
+        PREDICTIONS.labels("invalid").inc()
+        return HttpResponseBadRequest(json.dumps({"error": "data must contain finite numbers only"}), content_type="application/json")
+
     try:
         # Zero-copy bridge requires C-contiguous float32 array
         np_vector = np.ascontiguousarray(raw_data, dtype=np.float32)
@@ -76,6 +98,7 @@ def predict_view(request):
         l2_norm = round(float(torch.linalg.norm(tensor).item()), 3)
         scaled_result = (tensor * 2.0).tolist()
 
+        PREDICTIONS.labels("success").inc()
         return JsonResponse({
             "original": raw_data,
             "shape": str(np_vector.shape),
@@ -84,6 +107,10 @@ def predict_view(request):
             "zero_copy": is_zero_copy,
             "threads": torch.get_num_threads()
         })
-    except Exception as exc:
-        logger.exception("Error processing tensor vector: %s", exc)
-        return JsonResponse({"error": f"Internal tensor processing error: {str(exc)}"}, status=500)
+    except (TypeError, ValueError, OverflowError):
+        PREDICTIONS.labels("invalid").inc()
+        return HttpResponseBadRequest(json.dumps({"error": "data contains unsupported numeric values"}), content_type="application/json")
+    except Exception:
+        PREDICTIONS.labels("error").inc()
+        logger.exception("Unexpected tensor processing failure")
+        return JsonResponse({"error": "Internal tensor processing error"}, status=500)
