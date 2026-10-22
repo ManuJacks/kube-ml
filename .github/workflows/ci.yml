@@ -85,17 +85,17 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           load: ${{ github.event_name == 'pull_request' }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/kube-ml:development
+            ghcr.io/manujacks/kube-ml:${{ github.sha }}
+            ghcr.io/manujacks/kube-ml:development
 
       - name: Promote image tag in GitOps manifests
         if: github.event_name == 'push' && github.ref == 'refs/heads/development'
         env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+          IMAGE: ghcr.io/manujacks/kube-ml:${{ github.sha }}
         run: |
           # Replace the current image regardless of which immutable tag was promoted previously.
           sed -i -E "s#^([[:space:]]*)image: .*#\1image: ${IMAGE}#" clusters/minikube/apps/hardened-manifest.yaml
-          sed -i -E "s#^([[:space:]]*repository: ).*#\1ghcr.io/${{ github.repository_owner }}/kube-ml#; s#^([[:space:]]*tag: ).*#\1${{ github.sha }}#" kube-ml-chart/values.yaml
+          sed -i -E "s#^([[:space:]]*repository: ).*#\1ghcr.io/manujacks/kube-ml#; s#^([[:space:]]*tag: ).*#\1${{ github.sha }}#" kube-ml-chart/values.yaml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add clusters/minikube/apps/hardened-manifest.yaml kube-ml-chart/values.yaml
@@ -114,7 +114,7 @@ jobs:
         if: github.event_name == 'push'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+          image-ref: ghcr.io/manujacks/kube-ml:${{ github.sha }}
           format: table
           exit-code: '1'
           ignore-unfixed: true
@@ -124,7 +124,7 @@ jobs:
         if: github.event_name == 'push'
         uses: anchore/sbom-action@v0
         with:
-          image: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+          image: ghcr.io/manujacks/kube-ml:${{ github.sha }}
           artifact-name: kube-ml-${{ github.sha }}.spdx.json
           output-file: kube-ml-${{ github.sha }}.spdx.json
 
@@ -136,7 +136,7 @@ jobs:
         if: github.event_name == 'push'
         env:
           COSIGN_EXPERIMENTAL: '1'
-          IMAGE: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
+          IMAGE: ghcr.io/manujacks/kube-ml:${{ github.sha }}
         run: cosign sign --yes "${IMAGE}"
 
       - name: Scan pull-request image for vulnerabilities
