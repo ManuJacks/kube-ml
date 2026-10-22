@@ -23,12 +23,28 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --extra-index-url https://download.pytorch.org/whl/cpu torch>=2.0.0
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu 'torch>=2.0.0'
           pip install -e .
 
       - name: Run Django & Tensor Bridge Tests
         run: |
           python manage.py test core
+
+      - name: Validate Python formatting and syntax
+        run: |
+          python -m compileall -q config core mcp
+
+      - name: Validate Kubernetes manifests
+        run: |
+          kubectl kustomize clusters/minikube/apps >/dev/null
+
+      - name: Validate Helm templates
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.0
+
+      - run: helm lint kube-ml-chart
+      - run: helm template kube-ml kube-ml-chart >/dev/null
 
   docker-build:
     name: Validate Docker Build

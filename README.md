@@ -83,7 +83,7 @@ eval $(minikube docker-env)
 ### Step 2: Build the Container Image
 With Minikube's Docker environment active, build the container image:
 ```bash
-docker build -t django-numpy-app:v1 .
+docker build -t kube-ml-app:v1 .
 ```
 
 ### Step 3: Create the Kubernetes Manifests (`clusters/minikube/apps/`)
@@ -109,7 +109,7 @@ spec:
     spec:
       containers:
       - name: kube-ml-app
-        image: django-numpy-app:v1
+        image: kube-ml-app:v1
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000

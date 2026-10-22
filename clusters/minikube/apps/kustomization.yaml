@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: ml-workloads
 
 resources:
-  - deployment.yaml
+  - hardened-manifest.yaml
   - service.yaml
   - hpa.yaml
   - gateway.yaml

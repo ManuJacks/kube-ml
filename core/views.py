@@ -5,6 +5,7 @@ import torch
 from django.core.exceptions import RequestDataTooBig
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import render
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ MAX_ELEMENTS = 1_000_000
 
 def tensor_gui_view(request):
     """Renders the interactive HTML portal for tensor calculations."""
-    return render(request, "core/tensor_gui.html")
+    return render(request, "core/tensor_gui.html", {"app_version": settings.APP_VERSION})
 
 
 @csrf_exempt

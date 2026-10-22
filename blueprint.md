@@ -85,6 +85,9 @@ cloud-native-numpy-platform/
 
 ## 6. Enterprise Cloud Hardening & Multi-Tenant Security Blueprint
 
+### 6.0 Authentication roadmap
+Authentication is intentionally not implemented in the current reference service. Before exposing the API beyond a trusted internal boundary, add an explicit authentication and authorization layer (for example, OIDC/JWT validation or an API gateway policy), define scopes/tenant boundaries, and add tests for unauthenticated and unauthorized requests. This is a required follow-up control, not an assumption of the current deployment.
+
 To transition from the local GitOps/Minikube reference implementation to a hardened, enterprise-grade production cloud deployment (EKS, GKE, or AKS), the platform enforces strict multi-tenant zero-trust isolation, least-privilege identity, runtime boundary enforcement, and supply-chain controls.
 
 ### 6.1 Zero-Trust Network Policies (Cilium / Calico CNI)

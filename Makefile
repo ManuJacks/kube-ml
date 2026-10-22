@@ -27,7 +27,7 @@ test:
 	$(BIN)/python manage.py test core
 
 docker-build:
-	docker build -t django-numpy-app:v1 .
+	docker build -t kube-ml-app:v1 .
 
 clean:
 	rm -rf build/ dist/ *.egg-info __pycache__ */__pycache__ */*/__pycache__ .pytest_cache

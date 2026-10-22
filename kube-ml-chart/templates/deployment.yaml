@@ -15,8 +15,34 @@ spec:
     spec:
       containers:
       - name: django-container
-        image: "django-numpy-app:v1"
-        imagePullPolicy: Never
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
-        - containerPort: 5000
+        - containerPort: 8000
+          name: http
+        env:
+        - name: APP_VERSION
+          value: {{ .Values.appVersion | quote }}
+        - name: DJANGO_DEBUG
+          value: "false"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
 
