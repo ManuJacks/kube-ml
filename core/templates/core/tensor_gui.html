@@ -83,10 +83,13 @@
         .tab { background: transparent; color: #5c6770; padding: 10px 14px; border-bottom: 3px solid transparent; }
         .tab.active { color: #1d3e61; border-bottom-color: #2b5c8f; }
         .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+        .example-grid[hidden] { display: none; }
         .example-card { border: 1px solid #dce3ea; border-radius: 8px; padding: 14px; background: #fbfcfd; }
         .example-card h3 { margin: 0 0 8px; font-size: 15px; color: #1d3e61; }
         .example-card p { min-height: 42px; color: #5c6770; font-size: 13px; line-height: 1.45; }
         .example-card button { padding: 8px 12px; font-size: 13px; }
+        .help-button { background: #eef5fa; color: #1d3e61; border: 1px solid #b9cfe0; padding: 8px 12px; font-size: 13px; }
+        .help-panel { margin: 12px 0; padding: 16px; border-left: 4px solid #2b5c8f; background: #f5f9fc; color: #34495e; font-size: 13px; line-height: 1.55; }
     </style>
 </head>
 <body>
@@ -99,6 +102,19 @@
             <button onclick="calculateMatrix()">Execute Tensor Bridge</button>
         </div>
         <p class="subtitle">Explore bounded, runnable examples of the NumPy-to-PyTorch tensor bridge.</p>
+        <button class="help-button" type="button" onclick="toggleHelp()">How does an example work?</button>
+        <div id="help-panel" class="help-panel" hidden>
+            <h3>How to use the examples</h3>
+            <ol>
+                <li>Select either the <strong>NumPy</strong> or <strong>PyTorch</strong> tab. Only that module's examples will be shown.</li>
+                <li>Read the description, then select <strong>Run example</strong>.</li>
+                <li>The GUI loads the vector and sends it to <code>/predict</code>.</li>
+                <li>The API converts it to contiguous <code>float32</code>, bridges it to PyTorch without copying, calculates the L2 norm, and returns a scaled result.</li>
+                <li>The result reports shape, norm, scaled output, zero-copy status, and worker-thread count.</li>
+            </ol>
+            <p><strong>Example:</strong> <code>[3, 4]</code> has an L2 norm of <code>5</code>; the scaled result is <code>[6, 8]</code>, with <code>zero_copy: true</code>.</p>
+            <p><strong>Safety:</strong> values must be finite, arrays cannot be empty, and input is limited to 1,000,000 elements. Examples cannot change Kubernetes or execute shell commands.</p>
+        </div>
         <div class="tabs" role="tablist">
             <button class="tab active" id="numpy-tab" onclick="showTab('numpy')">NumPy examples</button>
             <button class="tab" id="torch-tab" onclick="showTab('torch')">PyTorch examples</button>
@@ -183,6 +199,11 @@
             document.getElementById('torch-examples').hidden = numpy;
             document.getElementById('numpy-tab').classList.toggle('active', numpy);
             document.getElementById('torch-tab').classList.toggle('active', !numpy);
+        }
+
+        function toggleHelp() {
+            const panel = document.getElementById('help-panel');
+            panel.hidden = !panel.hidden;
         }
     </script>
 </body>
