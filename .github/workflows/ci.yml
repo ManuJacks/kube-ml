@@ -93,8 +93,9 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/kube-ml:${{ github.sha }}
         run: |
-          sed -i -E "s#image: kube-ml-app:v1#image: ${IMAGE}#" clusters/minikube/apps/hardened-manifest.yaml
-          sed -i -E "s#repository: kube-ml-app#repository: ghcr.io/${{ github.repository_owner }}/kube-ml#; s#tag: v1#tag: ${{ github.sha }}#" kube-ml-chart/values.yaml
+          # Replace the current image regardless of which immutable tag was promoted previously.
+          sed -i -E "s#^([[:space:]]*)image: .*#\1image: ${IMAGE}#" clusters/minikube/apps/hardened-manifest.yaml
+          sed -i -E "s#^([[:space:]]*repository: ).*#\1ghcr.io/${{ github.repository_owner }}/kube-ml#; s#^([[:space:]]*tag: ).*#\1${{ github.sha }}#" kube-ml-chart/values.yaml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add clusters/minikube/apps/hardened-manifest.yaml kube-ml-chart/values.yaml

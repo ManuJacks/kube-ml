@@ -365,6 +365,10 @@ On pushes to `development`, GitHub Actions now:
 4. Commits that promotion back to `development`.
 5. Lets Flux reconcile the changed manifests into the cluster.
 
+The promotion step is repeatable: it replaces the previously promoted immutable tag on every
+successful `development` push. The workflow's promotion commit is marked `[skip ci]` so it does
+not start an image-build loop; Flux still observes that Git commit normally.
+
 The push pipeline also produces an SPDX SBOM and signs the published image with keyless Cosign
 using GitHub OIDC. A cluster admission policy must verify that signature before this becomes an
 enforced supply-chain boundary.
@@ -389,6 +393,8 @@ and reconciliation:
 ```bash
 gh run list --workflow ci.yml --limit 1
 flux get kustomizations
+flux reconcile source git kube-ml -n flux-system
+flux reconcile kustomization kube-ml-apps -n flux-system --with-source
 kubectl -n ml-workloads rollout status deployment/kube-ml-platform
 kubectl -n ml-workloads get pods -o wide
 ```
