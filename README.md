@@ -116,6 +116,7 @@ Full contract: [`docs/openapi.yaml`](docs/openapi.yaml).
 | [Architecture](docs/architecture.md) | Diagrams and repository layout |
 | [Local development](docs/local-development.md) | Setup, tests, endpoints, MCP server |
 | [Kubernetes on Minikube](docs/kubernetes-minikube.md) | Build, deploy, access |
+| [Minikube restart runbook](docs/restart-runbook.md) | Repeatable restart, repair modes, and GUI validation |
 | [Service mesh & HTTPS](docs/service-mesh.md) | Istio Ambient, mTLS, gateway access |
 | [GitOps & delivery](docs/gitops-and-delivery.md) | Flux, CI pipeline, image promotion |
 | [Security hardening](docs/security-hardening.md) | Network policy, RBAC, PSS, supply chain |

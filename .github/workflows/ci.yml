@@ -39,6 +39,9 @@ jobs:
         run: |
           python -m compileall -q config core mcp
 
+      - name: Test restart script safe mode
+        run: bash tests/test_restart_ml_env.sh
+
       - name: Run lint checks
         run: |
           pip install ruff
