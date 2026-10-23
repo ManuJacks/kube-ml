@@ -5,6 +5,7 @@
 | [Architecture](architecture.md) | Request and delivery diagrams, repository layout |
 | [Local development](local-development.md) | Setup, tests, dev server, endpoints, MCP server |
 | [Kubernetes on Minikube](kubernetes-minikube.md) | Build, deploy with Kustomize, reach the service |
+| [Minikube restart runbook](restart-runbook.md) | Repeatable restart, repair modes, and GUI validation |
 | [Service mesh & HTTPS](service-mesh.md) | Istio Ambient, mTLS, gateway access methods |
 | [GitOps & delivery](gitops-and-delivery.md) | Flux CD, CI pipeline, image promotion, verification |
 | [Security hardening](security-hardening.md) | Network policy, RBAC, PSS, secrets, supply chain |
