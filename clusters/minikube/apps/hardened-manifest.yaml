@@ -95,7 +95,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: kube-ml-app
-        image: ghcr.io/manujacks/kube-ml:1d2e5c03902fa0e43f4fad170e88c36da2ef2b1b
+        image: ghcr.io/manujacks/kube-ml:229a95e904ff8ffa600f549f98cc3c908e750610
         imagePullPolicy: IfNotPresent
         env:
         - name: DJANGO_ALLOWED_HOSTS
